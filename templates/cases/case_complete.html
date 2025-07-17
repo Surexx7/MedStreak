@@ -1,0 +1,765 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="case-complete-container">
+  <!-- Success Header -->
+  <div class="success-header">
+    <div class="container">
+      <div class="success-animation">
+        <div class="check-circle">
+          <i class="bi bi-check-lg"></i>
+        </div>
+        <div class="success-particles">
+          <div class="particle"></div>
+          <div class="particle"></div>
+          <div class="particle"></div>
+          <div class="particle"></div>
+          <div class="particle"></div>
+        </div>
+      </div>
+      <h1 class="success-title">Case Completed!</h1>
+      <p class="success-subtitle">Excellent work on completing the simulation</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="container">
+    <div class="completion-content">
+      <!-- Case Summary Card -->
+      <div class="case-summary-card">
+        <div class="case-header">
+          <div class="case-icon">
+            <i class="bi bi-clipboard-check"></i>
+          </div>
+          <div class="case-title">
+            <h2>{{ case.title }}</h2>
+            <p class="case-category">{{ case.category }}</p>
+          </div>
+        </div>
+        
+        <!-- Performance Score -->
+        <div class="performance-section">
+          <div class="score-display">
+            <div class="score-circle">
+              <div class="score-fill" data-score="{{ performance_score }}"></div>
+              <div class="score-number">{{ performance_score }}%</div>
+            </div>
+            <div class="score-label">Performance Score</div>
+          </div>
+          
+          <div class="score-breakdown">
+            <div class="score-item">
+              <div class="score-value">{{ attempt.total_xp_earned }}</div>
+              <div class="score-label">XP Earned</div>
+            </div>
+            <div class="score-item">
+              <div class="score-value">{{ max_possible_xp }}</div>
+              <div class="score-label">Max Possible</div>
+            </div>
+            <div class="score-item">
+              <div class="score-value">{{ attempt.case.steps.count }}</div>
+              <div class="score-label">Steps</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Decisions Summary -->
+      <div class="decisions-card">
+        <div class="card-header">
+          <h3>Your Decisions</h3>
+          <p>Review your choices throughout the case</p>
+        </div>
+        
+        <div class="decisions-timeline">
+          {% for choice_data in attempt.get_choices_made %}
+          <div class="timeline-item">
+            <div class="timeline-marker">
+              <span class="step-number">{{ forloop.counter }}</span>
+            </div>
+            <div class="timeline-content">
+              <div class="decision-info">
+                <div class="step-title">
+                  {% for step in case.steps.all %}
+                    {% if step.step_number == choice_data.step %}
+                      <strong>{{ step.title }}</strong>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+                <div class="choice-details">
+                  {% for step in case.steps.all %}
+                    {% if step.step_number == choice_data.step %}
+                      {% for choice in step.choices.all %}
+                        {% if choice.id == choice_data.choice_id %}
+                          <div class="choice-text">{{ choice.text }}</div>
+                          <div class="choice-result">
+                            {% if choice.is_correct %}
+                              <span class="result-badge correct">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Correct Choice
+                              </span>
+                            {% else %}
+                              <span class="result-badge incorrect">
+                                <i class="bi bi-x-circle-fill"></i>
+                                Suboptimal Choice
+                              </span>
+                            {% endif %}
+                          </div>
+                        {% endif %}
+                      {% endfor %}
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+              <div class="xp-earned">
+                <i class="bi bi-star-fill"></i>
+                <span>+{{ choice_data.xp_earned }} XP</span>
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="no-decisions">
+            <i class="bi bi-info-circle"></i>
+            <p>No decision history available</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Learning Insights -->
+      <div class="insights-card">
+        <div class="card-header">
+          <h3>Key Learning Points</h3>
+          <p>What you should remember from this case</p>
+        </div>
+        <div class="insights-content">
+          <div class="insight-item">
+            <div class="insight-icon">
+              <i class="bi bi-lightbulb"></i>
+            </div>
+            <div class="insight-text">
+              <strong>Clinical Reasoning:</strong> You demonstrated systematic thinking in diagnostic and treatment decisions.
+            </div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-icon">
+              <i class="bi bi-graph-up"></i>
+            </div>
+            <div class="insight-text">
+              <strong>Performance:</strong> 
+              {% if performance_score >= 80 %}
+                Excellent performance! Your clinical decision-making skills are strong.
+              {% elif performance_score >= 60 %}
+                Good performance with room for improvement in some areas.
+              {% else %}
+                Consider reviewing the case materials and trying again to improve your understanding.
+              {% endif %}
+            </div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-icon">
+              <i class="bi bi-target"></i>
+            </div>
+            <div class="insight-text">
+              <strong>Next Steps:</strong> Continue practicing with similar cases to reinforce your learning.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <a href="{% url 'start_case' case.id %}" class="btn btn-primary">
+          <i class="bi bi-arrow-repeat"></i>
+          <span>Try Again</span>
+        </a>
+        <a href="{% url 'case_list' %}" class="btn btn-secondary">
+          <i class="bi bi-grid-3x3-gap"></i>
+          <span>More Cases</span>
+        </a>
+      </div>
+
+      <!-- Stats Comparison -->
+      <div class="stats-comparison">
+        <div class="stats-card">
+          <div class="stats-icon">
+            <i class="bi bi-people"></i>
+          </div>
+          <div class="stats-content">
+            <h4>How You Compare</h4>
+            <p>
+              {% if performance_score >= 80 %}
+                You performed better than 75% of students on this case
+              {% elif performance_score >= 60 %}
+                You performed better than 50% of students on this case
+              {% else %}
+                Keep practicing - you're on the right track!
+              {% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+  }
+
+  .case-complete-container {
+    min-height: 100vh;
+    padding-bottom: 3rem;
+  }
+
+  /* Success Header */
+  .success-header {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 3rem 0;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .success-animation {
+    position: relative;
+    margin-bottom: 2rem;
+  }
+
+  .check-circle {
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(135deg, #10b981, #065f46);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    font-size: 3rem;
+    color: white;
+    box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+    animation: checkPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes checkPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  .success-particles {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    pointer-events: none;
+  }
+
+  .particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #fbbf24;
+    border-radius: 50%;
+    animation: particleFloat 3s ease-in-out infinite;
+  }
+
+  .particle:nth-child(1) { top: 20%; left: 20%; animation-delay: 0s; }
+  .particle:nth-child(2) { top: 20%; right: 20%; animation-delay: 0.5s; }
+  .particle:nth-child(3) { bottom: 20%; left: 20%; animation-delay: 1s; }
+  .particle:nth-child(4) { bottom: 20%; right: 20%; animation-delay: 1.5s; }
+  .particle:nth-child(5) { top: 50%; left: 10%; animation-delay: 2s; }
+
+  @keyframes particleFloat {
+    0%, 100% { transform: translateY(0px) scale(1); opacity: 0.7; }
+    50% { transform: translateY(-20px) scale(1.2); opacity: 1; }
+  }
+
+  .success-title {
+    font-size: 3rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 1rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .success-subtitle {
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0;
+  }
+
+  /* Main Content */
+  .completion-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: -2rem;
+  }
+
+  .case-summary-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    transform: translateY(-20px);
+  }
+
+  .case-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .case-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+  }
+
+  .case-title h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+  }
+
+  .case-category {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  /* Performance Section */
+  .performance-section {
+    text-align: center;
+  }
+
+  .score-display {
+    margin-bottom: 2rem;
+  }
+
+  .score-circle {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 1rem;
+    position: relative;
+    background: conic-gradient(#10b981 0deg, #10b981 calc(var(--score) * 3.6deg), #e5e7eb calc(var(--score) * 3.6deg), #e5e7eb 360deg);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .score-circle::before {
+    content: '';
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    background: white;
+    border-radius: 50%;
+  }
+
+  .score-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    position: relative;
+    z-index: 1;
+  }
+
+  .score-label {
+    font-size: 0.9rem;
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  .score-breakdown {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .score-item {
+    text-align: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 12px;
+  }
+
+  .score-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Decisions Card */
+  .decisions-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    transform: translateY(-20px);
+  }
+
+  .card-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .card-header h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+  }
+
+  .card-header p {
+    color: #6b7280;
+    margin: 0;
+  }
+
+  /* Timeline */
+  .decisions-timeline {
+    position: relative;
+  }
+
+  .timeline-item {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    position: relative;
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 50px;
+    width: 2px;
+    height: calc(100% + 20px);
+    background: #e5e7eb;
+  }
+
+  .timeline-item:last-child::before {
+    display: none;
+  }
+
+  .timeline-marker {
+    width: 40px;
+    height: 40px;
+    background: #667eea;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .step-number {
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .timeline-content {
+    flex: 1;
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .decision-info {
+    flex: 1;
+  }
+
+  .step-title {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: #1f2937;
+  }
+
+  .choice-text {
+    font-size: 0.9rem;
+    color: #4b5563;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+  }
+
+  .result-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  .result-badge.correct {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .result-badge.incorrect {
+    background: #fef2f2;
+    color: #dc2626;
+  }
+
+  .xp-earned {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: #f59e0b;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  /* Insights Card */
+  .insights-card {
+    grid-column: 1 / -1;
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    margin-top: 1rem;
+  }
+
+  .insights-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .insight-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border-left: 4px solid #667eea;
+  }
+
+  .insight-icon {
+    width: 40px;
+    height: 40px;
+    background: #667eea;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+
+  .insight-text {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #4b5563;
+  }
+
+  /* Action Buttons */
+  .action-buttons {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+  }
+
+  .btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 50px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+    color: white;
+  }
+
+  .btn-secondary {
+    background: white;
+    color: #4b5563;
+    border: 1px solid #d1d5db;
+  }
+
+  .btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    color: #4b5563;
+  }
+
+  /* Stats Comparison */
+  .stats-comparison {
+    grid-column: 1 / -1;
+    margin-top: 2rem;
+  }
+
+  .stats-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: linear-gradient(135deg, #f8f9fa, #ffffff);
+    padding: 2rem;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .stats-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+  }
+
+  .stats-content h4 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+  }
+
+  .stats-content p {
+    color: #6b7280;
+    margin: 0;
+  }
+
+  .no-decisions {
+    text-align: center;
+    padding: 2rem;
+    color: #6b7280;
+  }
+
+  .no-decisions i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .completion-content {
+      grid-template-columns: 1fr;
+      padding: 1rem;
+    }
+    
+    .success-title {
+      font-size: 2rem;
+    }
+    
+    .score-breakdown {
+      grid-template-columns: 1fr;
+    }
+    
+    .insights-content {
+      grid-template-columns: 1fr;
+    }
+    
+    .action-buttons {
+      flex-direction: column;
+    }
+    
+    .stats-card {
+      flex-direction: column;
+      text-align: center;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Animate score circle
+  const scoreCircle = document.querySelector('.score-circle');
+  const scoreValue = {{ performance_score }};
+  
+  if (scoreCircle) {
+    scoreCircle.style.setProperty('--score', scoreValue);
+  }
+  
+  // Animate cards entrance
+  const cards = document.querySelectorAll('.case-summary-card, .decisions-card, .insights-card');
+  cards.forEach((card, index) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(20px)';
+    
+    setTimeout(() => {
+      card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(-20px)';
+    }, index * 200);
+  });
+  
+  // Animate timeline items
+  const timelineItems = document.querySelectorAll('.timeline-item');
+  timelineItems.forEach((item, index) => {
+    item.style.opacity = '0';
+    item.style.transform = 'translateX(-20px)';
+    
+    setTimeout(() => {
+      item.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+      item.style.opacity = '1';
+      item.style.transform = 'translateX(0)';
+    }, 1000 + (index * 200));
+  });
+});
+</script>
+{% endblock %}

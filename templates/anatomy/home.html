@@ -1,0 +1,489 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}3D Anatomy Explorer - MediStreak{% endblock %}
+
+{% block extra_css %}
+<style>
+    .anatomy-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 3rem;
+        margin-bottom: 2rem;
+        text-align: center;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    }
+    
+    .organ-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .organ-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        border-color: #007bff;
+    }
+    
+    .organ-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 2rem;
+        color: white;
+    }
+    
+    .btn-explore {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        border: none;
+        color: white;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-explore:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
+        color: white;
+    }
+    
+    .feature-highlight {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border-left: 4px solid #007bff;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .stat-card {
+        background: rgba(255,255,255,0.2);
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+        backdrop-filter: blur(10px);
+    }
+
+    /* 3D Model Viewer Styles */
+    .model-container {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        padding: 20px;
+        margin: 30px 0;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        display: none;
+        position: relative;
+    }
+
+    .model-container.active {
+        display: block;
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .sketchfab-embed-wrapper {
+        margin: 20px 0;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .sketchfab-embed-wrapper iframe {
+        width: 100%;
+        height: 400px;
+        border: none;
+    }
+
+    .model-info {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 20px;
+        color: #333;
+    }
+
+    .close-model {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        background: #dc3545;
+        border: none;
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .close-model:hover {
+        background: #c82333;
+        transform: rotate(90deg);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Hero Section -->
+    <div class="anatomy-hero">
+        <h1 class="display-4 mb-3">🫀 3D Anatomy Explorer</h1>
+        <p class="lead">Explore the human body in stunning 3D detail</p>
+        <p>Interactive learning with virtual dissection and detailed explanations</p>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>{{ profile.level|default:"1" }}</h3>
+                <small>Current Level</small>
+            </div>
+            <div class="stat-card">
+                <h3>{{ profile.total_xp|default:"0" }}</h3>
+                <small>Total XP</small>
+            </div>
+            <div class="stat-card">
+                <h3>{{ profile.current_streak|default:"0" }}</h3>
+                <small>Day Streak</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Explorer Button -->
+    <div class="text-center mb-5">
+        <a href="{% url 'anatomy:explorer' %}" class="btn btn-explore btn-lg">
+            <i class="fas fa-cube me-2"></i>Launch 3D Explorer
+        </a>
+    </div>
+
+    <!-- Organ Systems -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <h2 class="text-center">🔬 Explore Body Systems</h2>
+            <p class="text-center text-muted">Click on any system to start your 3D exploration</p>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="organ-card text-center">
+                <div class="organ-icon" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">
+                    <i class="fas fa-heart"></i>
+                </div>
+                <h4>Cardiovascular System</h4>
+                <p class="text-muted">Heart, blood vessels, and circulation</p>
+                <ul class="list-unstyled text-start">
+                    <li><i class="fas fa-check text-success me-2"></i>Heart chambers</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Blood flow pathways</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Valve functions</li>
+                </ul>
+                <button class="btn btn-outline-primary" onclick="exploreOrgan('heart')">
+                    <i class="fas fa-eye me-2"></i>Explore Heart
+                </button>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="organ-card text-center">
+                <div class="organ-icon" style="background: linear-gradient(45deg, #9b59b6, #8e44ad);">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h4>Nervous System</h4>
+                <p class="text-muted">Brain, spinal cord, and nerves</p>
+                <ul class="list-unstyled text-start">
+                    <li><i class="fas fa-check text-success me-2"></i>Brain regions</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Neural pathways</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Reflex arcs</li>
+                </ul>
+                <button class="btn btn-outline-primary" onclick="exploreOrgan('brain')">
+                    <i class="fas fa-eye me-2"></i>Explore Brain
+                </button>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="organ-card text-center">
+                <div class="organ-icon" style="background: linear-gradient(45deg, #3498db, #2980b9);">
+                    <i class="fas fa-lungs"></i>
+                </div>
+                <h4>Respiratory System</h4>
+                <p class="text-muted">Lungs, airways, and gas exchange</p>
+                <ul class="list-unstyled text-start">
+                    <li><i class="fas fa-check text-success me-2"></i>Lung anatomy</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Breathing mechanics</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Alveolar structure</li>
+                </ul>
+                <button class="btn btn-outline-primary" onclick="exploreOrgan('lungs')">
+                    <i class="fas fa-eye me-2"></i>Explore Lungs
+                </button>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="organ-card text-center">
+                <div class="organ-icon" style="background: linear-gradient(45deg, #f39c12, #e67e22);">
+                    <i class="fas fa-stomach"></i>
+                </div>
+                <h4>Digestive System</h4>
+                <p class="text-muted">Stomach, intestines, and digestion</p>
+                <ul class="list-unstyled text-start">
+                    <li><i class="fas fa-check text-success me-2"></i>GI tract anatomy</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Digestive processes</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Liver functions</li>
+                </ul>
+                <button class="btn btn-outline-primary" onclick="exploreOrgan('digestive')">
+                    <i class="fas fa-eye me-2"></i>Explore System
+                </button>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="organ-card text-center">
+                <div class="organ-icon" style="background: linear-gradient(45deg, #1abc9c, #16a085);">
+                    <i class="fas fa-kidneys"></i>
+                </div>
+                <h4>Urinary System</h4>
+                <p class="text-muted">Kidneys, bladder, and filtration</p>
+                <ul class="list-unstyled text-start">
+                    <li><i class="fas fa-check text-success me-2"></i>Kidney structure</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Filtration process</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Urine formation</li>
+                </ul>
+                <button class="btn btn-outline-primary" onclick="exploreOrgan('kidneys')">
+                    <i class="fas fa-eye me-2"></i>Explore Kidneys
+                </button>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="organ-card text-center">
+                <div class="organ-icon" style="background: linear-gradient(45deg, #95a5a6, #7f8c8d);">
+                    <i class="fas fa-bone"></i>
+                </div>
+                <h4>Skeletal System</h4>
+                <p class="text-muted">Bones, joints, and movement</p>
+                <ul class="list-unstyled text-start">
+                    <li><i class="fas fa-check text-success me-2"></i>Bone structure</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Joint types</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Muscle attachments</li>
+                </ul>
+                <button class="btn btn-outline-primary" onclick="exploreOrgan('skeleton')">
+                    <i class="fas fa-eye me-2"></i>Explore Bones
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3D Model Containers -->
+    <div id="heart-model" class="model-container">
+        <button class="close-model" onclick="closeModel()">&times;</button>
+        <h3 class="mb-4"><i class="fas fa-heart me-2 text-danger"></i>Heart - 3D Model</h3>
+        <div class="sketchfab-embed-wrapper">
+            <iframe title="Human Heart" frameborder="0" allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share src="https://sketchfab.com/models/06d5a80a04fc4c5ab552759e9a97d91e/embed"></iframe>
+        </div>
+        <div class="model-info">
+            <h5>About the Heart</h5>
+            <p>The heart is a muscular organ that pumps blood throughout the body. It has four chambers: two atria and two ventricles. The right side pumps blood to the lungs, while the left side pumps blood to the rest of the body.</p>
+            <p><strong>Key Features:</strong> Four chambers, valves, electrical conduction system, and coronary circulation.</p>
+        </div>
+    </div>
+
+    <div id="brain-model" class="model-container">
+        <button class="close-model" onclick="closeModel()">&times;</button>
+        <h3 class="mb-4"><i class="fas fa-brain me-2 text-purple"></i>Brain - 3D Model</h3>
+        <div class="sketchfab-embed-wrapper">
+            <iframe title="Human Brain" frameborder="0" allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share src="https://sketchfab.com/models/44928d2d7a024872a9c45aaa6b919937/embed"></iframe>
+        </div>
+        <div class="model-info">
+            <h5>About the Brain</h5>
+            <p>The brain is the control center of the nervous system. It processes information, controls movement, and manages thoughts, emotions, and memory. The brain has different regions specialized for different functions.</p>
+            <p><strong>Key Features:</strong> Cerebrum, cerebellum, brainstem, and specialized regions for different functions.</p>
+        </div>
+    </div>
+
+    <div id="lungs-model" class="model-container">
+        <button class="close-model" onclick="closeModel()">&times;</button>
+        <h3 class="mb-4"><i class="fas fa-lungs me-2 text-info"></i>Lungs - 3D Model</h3>
+        <div class="sketchfab-embed-wrapper">
+            <iframe title="Lungs anatomy and functions" frameborder="0" allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share src="https://sketchfab.com/models/50c877863fe64d11a55044afb79f5664/embed"></iframe>
+        </div>
+        <div class="model-info">
+            <h5>About the Lungs</h5>
+            <p>The lungs are the primary organs of the respiratory system. They facilitate gas exchange, taking in oxygen and releasing carbon dioxide. Each lung contains millions of tiny air sacs called alveoli.</p>
+            <p><strong>Key Features:</strong> Alveoli, bronchi, bronchioles, and pleural membranes.</p>
+        </div>
+    </div>
+
+    <div id="digestive-model" class="model-container">
+        <button class="close-model" onclick="closeModel()">&times;</button>
+        <h3 class="mb-4"><i class="fas fa-stomach me-2 text-warning"></i>Digestive System - 3D Model</h3>
+        <div class="sketchfab-embed-wrapper">
+            <iframe title="Digestive System" frameborder="0" allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share src="https://sketchfab.com/models/c54bc3c9be1d4634a4e9e6b66c6a6bfe/embed"></iframe>
+        </div>
+        <div class="model-info">
+            <h5>About the Digestive System</h5>
+            <p>The digestive system breaks down food into nutrients that the body can absorb. It includes the mouth, esophagus, stomach, small intestine, large intestine, and accessory organs like the liver and pancreas.</p>
+            <p><strong>Key Features:</strong> GI tract, liver, pancreas, and gallbladder.</p>
+        </div>
+    </div>
+
+    <div id="kidneys-model" class="model-container">
+        <button class="close-model" onclick="closeModel()">&times;</button>
+        <h3 class="mb-4"><i class="fas fa-kidneys me-2 text-success"></i>Kidneys - 3D Model</h3>
+        <div class="sketchfab-embed-wrapper">
+            <iframe title="Kidney Anatomy" frameborder="0" allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share src="https://sketchfab.com/models/1c7e4e7f8a2d4e2f9c4b2e6f1a3d5c8e/embed"></iframe>
+        </div>
+        <div class="model-info">
+            <h5>About the Kidneys</h5>
+            <p>The kidneys are bean-shaped organs that filter waste products and excess water from the blood to produce urine. They also help regulate blood pressure and produce hormones.</p>
+            <p><strong>Key Features:</strong> Nephrons, glomeruli, and collecting ducts.</p>
+        </div>
+    </div>
+
+    <div id="skeleton-model" class="model-container">
+        <button class="close-model" onclick="closeModel()">&times;</button>
+        <h3 class="mb-4"><i class="fas fa-bone me-2 text-secondary"></i>Skeletal System - 3D Model</h3>
+        <div class="sketchfab-embed-wrapper">
+            <iframe title="Human Skeleton" frameborder="0" allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share src="https://sketchfab.com/models/d869b8d9d0c54d9a9e8e6d5c4b3a2f1e/embed"></iframe>
+        </div>
+        <div class="model-info">
+            <h5>About the Skeletal System</h5>
+            <p>The skeletal system provides structure and protection for the body. It consists of 206 bones in adults, along with cartilage, ligaments, and tendons. Bones also produce blood cells and store minerals.</p>
+            <p><strong>Key Features:</strong> Bone matrix, joints, ligaments, and bone marrow.</p>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="row mt-5">
+        <div class="col-12 mb-4">
+            <h2 class="text-center">✨ Explorer Features</h2>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="feature-highlight">
+                <h5><i class="fas fa-cube text-primary me-2"></i>Interactive 3D Models</h5>
+                <p>Rotate, zoom, and dissect anatomical structures with realistic 3D models from Sketchfab.</p>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="feature-highlight">
+                <h5><i class="fas fa-info-circle text-info me-2"></i>Detailed Information</h5>
+                <p>Click on any structure to learn about its function and clinical significance.</p>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="feature-highlight">
+                <h5><i class="fas fa-layer-group text-success me-2"></i>System Overview</h5>
+                <p>Explore different anatomical systems with comprehensive 3D visualizations.</p>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="feature-highlight">
+                <h5><i class="fas fa-trophy text-warning me-2"></i>Learning Rewards</h5>
+                <p>Earn XP and achievements as you explore and learn about anatomy.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tips Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h5><i class="fas fa-lightbulb me-2"></i>Exploration Tips</h5>
+                <ul class="mb-0">
+                    <li>Use mouse wheel to zoom in and out of structures</li>
+                    <li>Click and drag to rotate the 3D model</li>
+                    <li>Use the controls within each model for detailed exploration</li>
+                    <li>Click on highlighted areas for detailed information</li>
+                    <li>Spend time exploring to earn more XP</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function exploreOrgan(organType) {
+        // Hide all models first
+        const models = document.querySelectorAll('.model-container');
+        models.forEach(model => {
+            model.classList.remove('active');
+        });
+        
+        // Show the selected model
+        const selectedModel = document.getElementById(organType + '-model');
+        if (selectedModel) {
+            selectedModel.classList.add('active');
+            
+            // Smooth scroll to the model
+            selectedModel.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' 
+            });
+        }
+    }
+
+    function closeModel() {
+        const activeModel = document.querySelector('.model-container.active');
+        if (activeModel) {
+            activeModel.classList.remove('active');
+            
+            // Scroll back to the organ systems
+            document.querySelector('.row').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' 
+            });
+        }
+    }
+
+    // Animate cards on load
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.organ-card');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 150);
+        });
+
+        // Add hover effects to organ cards
+        const organCards = document.querySelectorAll('.organ-card');
+        organCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-8px) scale(1.02)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    });
+</script>
+{% endblock %}

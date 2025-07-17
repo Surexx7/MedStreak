@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Leaderboard - MedStreak{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">🏆 Student Leaderboard</h1>
+            <p class="text-gray-600">See how you rank among your fellow medical students</p>
+        </div>
+
+        <!-- User's Rank Card -->
+        <div class="bg-gradient-to-r from-blue-500 to-green-500 rounded-xl shadow-lg p-6 mb-8 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold mb-1">Your Current Rank</h2>
+                    <p class="text-blue-100">Keep learning to climb higher!</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-3xl font-bold">#{{ user_rank }}</div>
+                    <div class="text-sm text-blue-100">{{ user.studentprofile.total_xp }} XP</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="bg-white rounded-xl shadow-lg border overflow-hidden">
+            <div class="p-6 border-b">
+                <h2 class="text-xl font-semibold">Top Students</h2>
+                <p class="text-gray-600 text-sm">Rankings based on total XP earned</p>
+            </div>
+            
+            <div class="divide-y divide-gray-200">
+                {% for student in students %}
+                    <div class="p-6 flex items-center justify-between {% if student.user == user %}bg-blue-50{% endif %}">
+                        <div class="flex items-center space-x-4">
+                            <!-- Rank -->
+                            <div class="w-12 h-12 {% if forloop.counter == 1 %}bg-yellow-100 text-yellow-700{% elif forloop.counter == 2 %}bg-gray-100 text-gray-700{% elif forloop.counter == 3 %}bg-orange-100 text-orange-700{% else %}bg-gray-50 text-gray-600{% endif %} rounded-full flex items-center justify-center font-bold text-lg">
+                                {% if forloop.counter <= 3 %}
+                                    <i data-lucide="crown" class="w-5 h-5"></i>
+                                {% else %}
+                                    {{ forloop.counter }}
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Student Info -->
+                            <div>
+                                <h3 class="font-semibold text-gray-900">
+                                    {% if student.user == user %}
+                                        {{ student.user.get_full_name|default:student.user.username }} (You)
+                                    {% else %}
+                                        {{ student.user.get_full_name|default:student.user.username }}
+                                    {% endif %}
+                                </h3>
+                                <div class="flex items-center space-x-3 text-sm text-gray-600">
+                                    <span>Level {{ student.level }}</span>
+                                    {% if student.university %}
+                                        <span>•</span>
+                                        <span>{{ student.university }}</span>
+                                    {% endif %}
+                                    <span>•</span>
+                                    <span>{{ student.get_year_of_study_display }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Stats -->
+                        <div class="text-right">
+                            <div class="text-xl font-bold {% if student.user == user %}text-blue-600{% else %}text-gray-900{% endif %}">
+                                {{ student.total_xp }} XP
+                            </div>
+                            <div class="text-sm text-gray-600">
+                                {{ student.cases_completed }} cases • {{ student.current_streak }} day streak
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Leaderboard Categories -->
+        <div class="grid md:grid-cols-3 gap-6 mt-8">
+            <div class="bg-white rounded-xl shadow-lg border p-6">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <i data-lucide="zap" class="w-5 h-5 text-green-600"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold">Longest Streaks</h3>
+                </div>
+                <div class="space-y-3">
+                    {% for student in students|slice:":3" %}
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{{ student.user.username }}</span>
+                            <span class="font-medium text-green-600">{{ student.longest_streak }} days</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg border p-6">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i data-lucide="gamepad-2" class="w-5 h-5 text-blue-600"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold">Most Cases</h3>
+                </div>
+                <div class="space-y-3">
+                    {% for student in students|slice:":3" %}
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{{ student.user.username }}</span>
+                            <span class="font-medium text-blue-600">{{ student.cases_completed }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg border p-6">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                        <i data-lucide="target" class="w-5 h-5 text-purple-600"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold">Best Accuracy</h3>
+                </div>
+                <div class="space-y-3">
+                    {% for student in students|slice:":3" %}
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{{ student.user.username }}</span>
+                            <span class="font-medium text-purple-600">{{ student.quiz_accuracy|floatformat:0 }}%</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Motivation Section -->
+        <div class="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg p-8 mt-8 text-white text-center">
+            <h2 class="text-2xl font-bold mb-2">Keep Climbing! 🚀</h2>
+            <p class="text-purple-100 mb-4">Every case you complete and every quiz you take brings you closer to the top!</p>
+            <a href="{% url 'dashboard' %}" class="bg-white text-purple-600 px-6 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+                Continue Learning
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

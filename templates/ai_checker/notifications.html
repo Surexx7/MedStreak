@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notifications - MedStreak{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+    .notification-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 15px;
+        transition: all 0.2s ease;
+        border-left: 4px solid transparent;
+    }
+    
+    .notification-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .notification-card.unread {
+        border-left-color: #007bff;
+        background: #f8f9ff;
+    }
+    
+    .notification-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+    }
+    
+    .notification-content {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .notification-message {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    
+    .notification-time {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 4px;
+    }
+    
+    .notification-question {
+        font-size: 13px;
+        color: #495057;
+        margin-top: 8px;
+        padding: 8px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border-left: 3px solid #007bff;
+    }
+    
+    .mark-read-btn {
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+    
+    .notification-card:hover .mark-read-btn {
+        opacity: 1;
+    }
+    
+    .notification-card.unread .mark-read-btn {
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-bell me-2"></i>Notifications</h2>
+                <button class="btn btn-outline-primary btn-sm" onclick="markAllAsRead()">
+                    <i class="fas fa-check-double me-1"></i>Mark All Read
+                </button>
+            </div>
+
+            <!-- Back Button -->
+            <div class="mb-3">
+                <a href="{% url 'ai_checker:question_feed' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Questions
+                </a>
+            </div>
+
+            <!-- Notifications -->
+            {% for notification in page_obj %}
+            <div class="notification-card p-3 {% if not notification.is_read %}unread{% endif %}" 
+                 data-notification-id="{{ notification.id }}">
+                <div class="d-flex align-items-start">
+                    <!-- Sender Avatar -->
+                    <div class="notification-avatar me-3">
+                        {{ notification.sender.username|first|upper }}
+                    </div>
+                    
+                    <!-- Notification Content -->
+                    <div class="notification-content">
+                        <p class="notification-message">
+                            {{ notification.get_message }}
+                        </p>
+                        <div class="notification-time">
+                            {{ notification.created_at|timesince }} ago
+                        </div>
+                        
+                        {% if notification.question %}
+                        <div class="notification-question">
+                            <strong>{{ notification.question.title }}</strong>
+                            {% if notification.question.content|length > 100 %}
+                                <br><small>{{ notification.question.content|truncatechars:100 }}</small>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="d-flex flex-column align-items-end">
+                        {% if not notification.is_read %}
+                        <button class="btn btn-sm btn-outline-primary mark-read-btn mb-2" 
+                                onclick="markAsRead({{ notification.id }})">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        {% endif %}
+                        
+                        {% if notification.question %}
+                        <a href="{{ notification.get_url }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-5">
+                <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                <h5>No notifications yet</h5>
+                <p class="text-muted">You'll see notifications here when someone interacts with your questions or answers.</p>
+            </div>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Notifications pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Mark single notification as read
+function markAsRead(notificationId) {
+    fetch(`/ai-checker/notifications/${notificationId}/read/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const card = document.querySelector(`[data-notification-id="${notificationId}"]`);
+            card.classList.remove('unread');
+            const markReadBtn = card.querySelector('.mark-read-btn');
+            if (markReadBtn) markReadBtn.remove();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+// Mark all notifications as read
+function markAllAsRead() {
+    fetch('/ai-checker/notifications/mark-all-read/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Remove unread styling from all cards
+            document.querySelectorAll('.notification-card.unread').forEach(card => {
+                card.classList.remove('unread');
+            });
+            // Remove all mark-read buttons
+            document.querySelectorAll('.mark-read-btn').forEach(btn => btn.remove());
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+</script>
+{% endblock %}

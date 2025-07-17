@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile - MedStreak{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Profile Header -->
+        <div class="bg-white rounded-xl shadow-lg border p-8 mb-8">
+            <div class="flex items-center space-x-6">
+                <div class="w-20 h-20 gradient-bg rounded-full flex items-center justify-center">
+                    <i data-lucide="user" class="w-10 h-10 text-white"></i>
+                </div>
+                <div class="flex-1">
+                    <h1 class="text-2xl font-bold text-gray-900">{{ user.get_full_name|default:user.username }}</h1>
+                    <p class="text-gray-600">{{ profile.university|default:"Medical Student" }}</p>
+                    <div class="flex items-center space-x-4 mt-2">
+                        <div class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+                            Level {{ profile.level }}
+                        </div>
+                        <div class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium">
+                            {{ profile.total_xp }} XP
+                        </div>
+                        <div class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
+                            Rank #{{ profile.get_rank }}
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <button onclick="toggleEditMode()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+                        <i data-lucide="edit" class="w-4 h-4 inline mr-1"></i>
+                        Edit Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-8">
+            <!-- Profile Information -->
+            <div class="lg:col-span-2">
+                <!-- Edit Form (Hidden by default) -->
+                <div id="edit-form" class="hidden bg-white rounded-xl shadow-lg border p-6 mb-6">
+                    <h2 class="text-xl font-semibold mb-4">Edit Profile</h2>
+                    <form method="post" class="space-y-4">
+                        {% csrf_token %}
+                        
+                        <!-- Personal Info -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                                {{ user_form.first_name }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                                {{ user_form.last_name }}
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            {{ user_form.email }}
+                        </div>
+                        
+                        <!-- Academic Info -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
+                                {{ profile_form.student_id }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">University</label>
+                                {{ profile_form.university }}
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Year of Study</label>
+                                {{ profile_form.year_of_study }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
+                                {{ profile_form.specialization }}
+                            </div>
+                        </div>
+                        
+                        <!-- Preferences -->
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                {{ profile_form.email_notifications }}
+                                <label class="ml-2 text-sm text-gray-700">Email notifications</label>
+                            </div>
+                            <div class="flex items-center">
+                                {{ profile_form.public_profile }}
+                                <label class="ml-2 text-sm text-gray-700">Public profile</label>
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-3">
+                            <button type="submit" class="gradient-bg text-white px-4 py-2 rounded-lg hover:opacity-90">
+                                Save Changes
+                            </button>
+                            <button type="button" onclick="toggleEditMode()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Academic Progress -->
+                <div class="bg-white rounded-xl shadow-lg border p-6 mb-6">
+                    <h2 class="text-xl font-semibold mb-4">Academic Progress</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600">{{ profile.cases_completed }}</div>
+                            <div class="text-sm text-gray-600">Cases Completed</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600">{{ profile.quiz_accuracy|floatformat:0 }}%</div>
+                            <div class="text-sm text-gray-600">Quiz Accuracy</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-purple-600">{{ total_study_time }}</div>
+                            <div class="text-sm text-gray-600">Study Minutes</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-orange-600">{{ profile.current_streak }}</div>
+                            <div class="text-sm text-gray-600">Day Streak</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Achievements -->
+                <div class="bg-white rounded-xl shadow-lg border p-6">
+                    <h2 class="text-xl font-semibold mb-4">Achievements</h2>
+                    {% if achievements %}
+                        <div class="grid md:grid-cols-2 gap-4">
+                            {% for achievement in achievements %}
+                                <div class="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                    <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                                        <i data-lucide="trophy" class="w-5 h-5 text-yellow-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-sm">{{ achievement.title }}</p>
+                                        <p class="text-xs text-gray-600">{{ achievement.description }}</p>
+                                        <p class="text-xs text-yellow-600">+{{ achievement.xp_reward }} XP • {{ achievement.earned_at|date:"M d, Y" }}</p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-gray-500 text-center py-8">No achievements yet. Complete activities to earn your first achievement!</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Level Progress -->
+                <div class="bg-white rounded-xl shadow-lg border p-6">
+                    <h3 class="text-lg font-semibold mb-4">Level Progress</h3>
+                    <div class="text-center mb-4">
+                        <div class="text-3xl font-bold text-blue-600 mb-1">Level {{ profile.level }}</div>
+                        <p class="text-sm text-gray-600">{{ profile.get_year_of_study_display }}</p>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                        <div class="bg-blue-600 h-3 rounded-full transition-all duration-300" style="width: {{ profile.get_level_progress }}%"></div>
+                    </div>
+                    <p class="text-sm text-gray-600 text-center">{{ profile.get_xp_to_next_level }} XP to Level {{ profile.level|add:1 }}</p>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="bg-white rounded-xl shadow-lg border p-6">
+                    <h3 class="text-lg font-semibold mb-4">Quick Stats</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Member Since</span>
+                            <span class="font-medium">{{ profile.created_at|date:"M Y" }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Longest Streak</span>
+                            <span class="font-medium">{{ profile.longest_streak }} days</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Study Sessions</span>
+                            <span class="font-medium">{{ total_sessions }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Specialization</span>
+                            <span class="font-medium">{{ profile.get_specialization_display }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Study Session Controls -->
+                <div class="bg-white rounded-xl shadow-lg border p-6">
+                    <h3 class="text-lg font-semibold mb-4">Study Session</h3>
+                    <div class="space-y-3">
+                        <button onclick="startStudySession()" class="w-full gradient-bg text-white py-2 px-4 rounded-lg hover:opacity-90 transition-opacity">
+                            <i data-lucide="play" class="w-4 h-4 inline mr-2"></i>
+                            Start Study Session
+                        </button>
+                        <p class="text-xs text-gray-500 text-center">Track your study time and earn XP!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleEditMode() {
+    const editForm = document.getElementById('edit-form');
+    editForm.classList.toggle('hidden');
+}
+</script>
+{% endblock %}

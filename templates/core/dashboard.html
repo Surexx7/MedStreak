@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - MedStreak{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Welcome Section -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Welcome back, {{ user.first_name|default:user.username }}! 👨‍⚕️</h1>
+        <p class="text-gray-600">Ready to continue your medical adventure? Let's see your progress.</p>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg border p-6">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-medium text-gray-600">Total XP</h3>
+                <i data-lucide="trophy" class="h-4 w-4 text-yellow-600"></i>
+            </div>
+            <div class="text-2xl font-bold text-yellow-600">{{ profile.total_xp }}</div>
+            <p class="text-xs text-gray-600">Level {{ profile.level }}</p>
+        </div>
+
+        <div class="bg-white rounded-lg border p-6">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-medium text-gray-600">Cases Completed</h3>
+                <i data-lucide="gamepad-2" class="h-4 w-4 text-blue-600"></i>
+            </div>
+            <div class="text-2xl font-bold text-blue-600">{{ profile.cases_completed }}</div>
+            <p class="text-xs text-gray-600">Great progress!</p>
+        </div>
+
+        <div class="bg-white rounded-lg border p-6">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-medium text-gray-600">Quiz Accuracy</h3>
+                <i data-lucide="target" class="h-4 w-4 text-green-600"></i>
+            </div>
+            <div class="text-2xl font-bold text-green-600">{{ profile.quiz_accuracy|floatformat:0 }}%</div>
+            <p class="text-xs text-gray-600">Keep improving!</p>
+        </div>
+
+        <div class="bg-white rounded-lg border p-6">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-medium text-gray-600">Current Streak</h3>
+                <i data-lucide="zap" class="h-4 w-4 text-orange-600"></i>
+            </div>
+            <div class="text-2xl font-bold text-orange-600">{{ profile.current_streak }} days</div>
+            <p class="text-xs text-gray-600">Keep it up! 🔥</p>
+        </div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-8">
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-lg border p-6">
+                <div class="flex items-center space-x-2 mb-4">
+                    <i data-lucide="play" class="w-5 h-5 text-blue-600"></i>
+                    <h2 class="text-xl font-semibold">Quick Start</h2>
+                </div>
+                <p class="text-gray-600 mb-4">Jump into your medical adventure</p>
+                
+                <div class="grid md:grid-cols-2 gap-4">
+                    <a href="{% url 'case_list' %}" class="gradient-bg text-white rounded-lg p-6 text-center hover:opacity-90 transition-opacity">
+                        <i data-lucide="gamepad-2" class="w-8 h-8 mx-auto mb-2"></i>
+                        <div class="font-medium">New Case Simulation</div>
+                    </a>
+                    <a href="{% url 'quizzes:quiz_list' %}" class="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg p-6 text-center hover:opacity-90 transition-opacity">
+                        <i data-lucide="zap" class="w-8 h-8 mx-auto mb-2"></i>
+                        <div class="font-medium">Timed Quiz Challenge</div>
+                    </a>
+                    <a href="{% url 'anatomy_explorer' %}" class="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg p-6 text-center hover:opacity-90 transition-opacity">
+                        <i data-lucide="brain" class="w-8 h-8 mx-auto mb-2"></i>
+                        <div class="font-medium">3D Anatomy Explorer</div>
+                    </a>
+                    <a href="{% url 'ai_checker:question_feed' %}" class="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg p-6 text-center hover:opacity-90 transition-opacity">
+                        <i data-lucide="activity" class="w-8 h-8 mx-auto mb-2"></i>
+                        <div class="font-medium">AI Symptom Checker</div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="bg-white rounded-lg border p-6">
+                <div class="flex items-center space-x-2 mb-4">
+                    <i data-lucide="clock" class="w-5 h-5 text-gray-600"></i>
+                    <h2 class="text-xl font-semibold">Recent Activity</h2>
+                </div>
+                
+                <div class="space-y-4">
+                    {% for activity in recent_activities %}
+                        <div class="flex items-center space-x-4 p-3 bg-blue-50 rounded-lg">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                {% if activity.activity_type == 'case_completed' %}
+                                    <i data-lucide="gamepad-2" class="w-5 h-5 text-blue-600"></i>
+                                {% elif activity.activity_type == 'quiz_taken' %}
+                                    <i data-lucide="target" class="w-5 h-5 text-green-600"></i>
+                                {% elif activity.activity_type == 'anatomy_explored' %}
+                                    <i data-lucide="brain" class="w-5 h-5 text-purple-600"></i>
+                                {% else %}
+                                    <i data-lucide="activity" class="w-5 h-5 text-orange-600"></i>
+                                {% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium">{{ activity.title }}</p>
+                                <p class="text-sm text-gray-600">{{ activity.description }} • {{ activity.created_at|timesince }} ago</p>
+                            </div>
+                            <div class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
+                                +{{ activity.xp_earned }} XP
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-gray-500 text-center py-4">No recent activity. Start learning to see your progress here!</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Level Progress -->
+            <div class="bg-white rounded-lg border p-6">
+                <div class="flex items-center space-x-2 mb-4">
+                    <i data-lucide="star" class="w-5 h-5 text-yellow-600"></i>
+                    <h3 class="text-lg font-semibold">Level Progress</h3>
+                </div>
+                
+                <div class="text-center mb-4">
+                    <div class="text-3xl font-bold text-blue-600 mb-1">Level {{ profile.level }}</div>
+                    <p class="text-sm text-gray-600">Medical Student</p>
+                </div>
+                
+                <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                    <div class="bg-blue-600 h-2 rounded-full" style="width: {{ level_progress }}%"></div>
+                </div>
+                <p class="text-sm text-gray-600 text-center">{{ xp_to_next_level }} XP to Level {{ profile.level|add:1 }}</p>
+            </div>
+
+            <!-- Achievements -->
+            <div class="bg-white rounded-lg border p-6">
+                <div class="flex items-center space-x-2 mb-4">
+                    <i data-lucide="award" class="w-5 h-5 text-yellow-600"></i>
+                    <h3 class="text-lg font-semibold">Recent Achievements</h3>
+                </div>
+                
+                <div class="space-y-3">
+                    {% for achievement in recent_achievements %}
+                        <div class="flex items-center space-x-3 p-2 bg-yellow-50 rounded-lg">
+                            <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="trophy" class="w-4 h-4 text-yellow-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-sm">{{ achievement.title }}</p>
+                                <p class="text-xs text-gray-600">{{ achievement.description }}</p>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-gray-500 text-center py-4 text-sm">Complete activities to earn achievements!</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Leaderboard -->
+            <div class="bg-white rounded-lg border p-6">
+                <div class="flex items-center space-x-2 mb-4">
+                    <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
+                    <h3 class="text-lg font-semibold">Weekly Leaderboard</h3>
+                </div>
+                
+                <div class="space-y-3">
+                    {% for leader in leaderboard %}
+                        <div class="flex items-center justify-between {% if leader.user == user %}bg-blue-50 p-2 rounded-lg{% endif %}">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-6 h-6 {% if forloop.counter == 1 %}bg-yellow-100 text-yellow-700{% elif forloop.counter == 2 %}bg-gray-100 text-gray-700{% elif forloop.counter == 3 %}bg-orange-100 text-orange-700{% else %}bg-gray-100 text-gray-700{% endif %} rounded-full flex items-center justify-center text-xs font-bold">
+                                    {{ forloop.counter }}
+                                </div>
+                                <span class="text-sm font-medium">
+                                    {% if leader.user == user %}You{% else %}{{ leader.user.username }}{% endif %}
+                                </span>
+                            </div>
+                            <span class="text-sm {% if leader.user == user %}text-blue-600 font-medium{% else %}text-gray-600{% endif %}">
+                                {{ leader.total_xp }} XP
+                            </span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

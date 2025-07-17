@@ -1,0 +1,725 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="case-step-container">
+  <!-- Header Section -->
+  <div class="case-header">
+    <div class="container">
+      <div class="header-content">
+        <div class="case-info">
+          <div class="case-breadcrumb">
+            <a href="{% url 'case_list' %}" class="breadcrumb-link">
+              <i class="bi bi-arrow-left"></i> Back to Cases
+            </a>
+          </div>
+          <h1 class="case-title">{{ attempt.case.title }}</h1>
+          <div class="case-meta">
+            <span class="difficulty-badge difficulty-{{ attempt.case.difficulty }}">
+              {{ attempt.case.get_difficulty_display }}
+            </span>
+            <span class="category-badge">{{ attempt.case.category }}</span>
+          </div>
+        </div>
+        <div class="progress-section">
+          <div class="step-counter">
+            <span class="current-step">{{ current_step.step_number }}</span>
+            <span class="step-divider">/</span>
+            <span class="total-steps">{{ total_steps }}</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: {% widthratio current_step.step_number total_steps 100 %}%"></div>
+            </div>
+          </div>
+          <div class="xp-display">
+            <i class="bi bi-star-fill"></i>
+            <span>{{ attempt.total_xp_earned }} XP</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="container">
+    <div class="case-content">
+      <!-- Patient Information Card -->
+      <div class="patient-card">
+        <div class="patient-header">
+          <div class="patient-icon">
+            <i class="bi bi-person-circle"></i>
+          </div>
+          <div class="patient-title">
+            <h3>Patient Information</h3>
+            <p>Current Clinical Status</p>
+          </div>
+        </div>
+        <div class="patient-details">
+          <div class="patient-info-content">
+            {{ current_step.patient_info|default:attempt.case.patient_info|linebreaks }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Step Content -->
+      <div class="step-content-card">
+        <div class="step-header">
+          <div class="step-number-badge">
+            Step {{ current_step.step_number }}
+          </div>
+          <h2 class="step-title">{{ current_step.title }}</h2>
+        </div>
+        
+        <div class="step-description">
+          {{ current_step.description|linebreaks }}
+        </div>
+
+        <!-- Choices Section -->
+        <div class="choices-section">
+          <h3 class="choices-title">What would you like to do?</h3>
+          <form method="post" action="{% url 'submit_choice' attempt.id %}" class="choices-form">
+            {% csrf_token %}
+            <div class="choices-grid">
+              {% for choice in current_step.choices.all %}
+              <div class="choice-card">
+                <input type="radio" name="choice" value="{{ choice.id }}" id="choice-{{ choice.id }}" class="choice-input">
+                <label for="choice-{{ choice.id }}" class="choice-label">
+                  <div class="choice-content">
+                    <div class="choice-text">{{ choice.text }}</div>
+                  </div>
+                  <div class="choice-indicator">
+                    <i class="bi bi-check-circle-fill"></i>
+                  </div>
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+            
+            <div class="form-actions">
+              <button type="submit" class="submit-btn" disabled>
+                <i class="bi bi-arrow-right-circle"></i>
+                <span>Submit Answer</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Previous Choices Summary (if any) -->
+      {% if attempt.get_choices_made %}
+      <div class="choices-summary-card">
+        <h3 class="summary-title">
+          <i class="bi bi-clock-history"></i>
+          Previous Decisions
+        </h3>
+        <div class="choices-timeline">
+          {% for choice_data in attempt.get_choices_made %}
+          <div class="timeline-item">
+            <div class="timeline-marker"></div>
+            <div class="timeline-content">
+              <div class="timeline-step">Step {{ forloop.counter }}</div>
+              <div class="timeline-xp">+{{ choice_data.xp_earned }} XP</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner">
+    <div class="spinner"></div>
+    <p>Processing your decision...</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+  }
+
+  .case-step-container {
+    min-height: 100vh;
+    padding-bottom: 2rem;
+  }
+
+  /* Header Styles */
+  .case-header {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+  }
+
+  .header-content {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2rem;
+    align-items: center;
+  }
+
+  .case-breadcrumb {
+    margin-bottom: 1rem;
+  }
+
+  .breadcrumb-link {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+  }
+
+  .breadcrumb-link:hover {
+    color: white;
+  }
+
+  .case-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 1rem;
+  }
+
+  .case-meta {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .difficulty-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .difficulty-easy {
+    background: linear-gradient(135deg, #10b981, #065f46);
+    color: white;
+  }
+
+  .difficulty-medium {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+  }
+
+  .difficulty-hard {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+  }
+
+  .category-badge {
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    backdrop-filter: blur(10px);
+  }
+
+  .progress-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    min-width: 200px;
+  }
+
+  .step-counter {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+
+  .current-step {
+    font-size: 2rem;
+    font-weight: 700;
+  }
+
+  .step-divider {
+    opacity: 0.6;
+  }
+
+  .total-steps {
+    opacity: 0.8;
+  }
+
+  .progress-bar-container {
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .progress-bar {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    height: 8px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    background: linear-gradient(90deg, #00d4ff, #00ff88);
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.3s ease;
+  }
+
+  .xp-display {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #fbbf24;
+    font-weight: 600;
+  }
+
+  /* Main Content Styles */
+  .case-content {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  .patient-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    height: fit-content;
+    position: sticky;
+    top: 2rem;
+  }
+
+  .patient-header {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .patient-icon {
+    font-size: 2.5rem;
+  }
+
+  .patient-title h3 {
+    margin: 0;
+    font-size: 1.3rem;
+  }
+
+  .patient-title p {
+    margin: 0;
+    opacity: 0.8;
+    font-size: 0.9rem;
+  }
+
+  .patient-details {
+    padding: 1.5rem;
+  }
+
+  .patient-info-content {
+    line-height: 1.6;
+    color: #4b5563;
+  }
+
+  /* Step Content Styles */
+  .step-content-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  }
+
+  .step-header {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    padding: 2rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .step-number-badge {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    margin-bottom: 1rem;
+  }
+
+  .step-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+  }
+
+  .step-description {
+    padding: 2rem;
+    font-size: 1.1rem;
+    line-height: 1.7;
+    color: #4b5563;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  /* Choices Styles */
+  .choices-section {
+    padding: 2rem;
+  }
+
+  .choices-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 1.5rem;
+  }
+
+  .choices-grid {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .choice-card {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .choice-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .choice-label {
+    display: block;
+    background: #f8f9fa;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+
+  .choice-label:hover {
+    border-color: #667eea;
+    background: #f0f4ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  }
+
+  .choice-input:checked + .choice-label {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #f0f4ff, #e0e7ff);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  }
+
+  .choice-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .choice-text {
+    flex: 1;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #374151;
+  }
+
+  .choice-indicator {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    color: #667eea;
+    font-size: 1.2rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .choice-input:checked + .choice-label .choice-indicator {
+    opacity: 1;
+  }
+
+  /* Form Actions */
+  .form-actions {
+    display: flex;
+    justify-content: center;
+  }
+
+  .submit-btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  }
+
+  .submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  }
+
+  .submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Choices Summary */
+  .choices-summary-card {
+    grid-column: 1 / -1;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    margin-top: 2rem;
+  }
+
+  .summary-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 1.5rem;
+  }
+
+  .choices-timeline {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding: 1rem 0;
+  }
+
+  .timeline-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 150px;
+  }
+
+  .timeline-marker {
+    width: 12px;
+    height: 12px;
+    background: #667eea;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .timeline-content {
+    text-align: center;
+  }
+
+  .timeline-step {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-bottom: 0.3rem;
+  }
+
+  .timeline-xp {
+    font-weight: 600;
+    color: #f59e0b;
+    font-size: 0.9rem;
+  }
+
+  /* Loading Overlay */
+  .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+
+  .loading-spinner {
+    background: white;
+    padding: 2rem;
+    border-radius: 16px;
+    text-align: center;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f4f6;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* Responsive Design */
+  @media (max-width: 1024px) {
+    .case-content {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    
+    .patient-card {
+      position: static;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .header-content {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    
+    .case-title {
+      font-size: 2rem;
+    }
+    
+    .case-content {
+      padding: 0 1rem;
+    }
+    
+    .step-header,
+    .step-description,
+    .choices-section {
+      padding: 1.5rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.querySelector('.choices-form');
+  const submitBtn = document.querySelector('.submit-btn');
+  const choiceInputs = document.querySelectorAll('.choice-input');
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  
+  // Enable submit button when choice is selected
+  choiceInputs.forEach(input => {
+    input.addEventListener('change', function() {
+      submitBtn.disabled = false;
+      
+      // Add animation to selected choice
+      const selectedLabel = this.nextElementSibling;
+      selectedLabel.style.transform = 'scale(1.02)';
+      
+      // Remove animation from other choices
+      choiceInputs.forEach(otherInput => {
+        if (otherInput !== this) {
+          otherInput.nextElementSibling.style.transform = 'scale(1)';
+        }
+      });
+    });
+  });
+  
+  // Handle form submission
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const selectedChoice = document.querySelector('.choice-input:checked');
+    if (!selectedChoice) {
+      alert('Please select an answer before submitting.');
+      return;
+    }
+    
+    // Show loading overlay
+    loadingOverlay.style.display = 'flex';
+    
+    // Submit form after short delay for UX
+    setTimeout(() => {
+      form.submit();
+    }, 1000);
+  });
+  
+  // Add hover effects to choice cards
+  const choiceCards = document.querySelectorAll('.choice-card');
+  choiceCards.forEach(card => {
+    card.addEventListener('mouseenter', function() {
+      const label = this.querySelector('.choice-label');
+      if (!this.querySelector('.choice-input').checked) {
+        label.style.transform = 'translateY(-3px)';
+      }
+    });
+    
+    card.addEventListener('mouseleave', function() {
+      const label = this.querySelector('.choice-label');
+      const input = this.querySelector('.choice-input');
+      if (!input.checked) {
+        label.style.transform = 'translateY(0)';
+      }
+    });
+  });
+  
+  // Animate progress bar on load
+  const progressFill = document.querySelector('.progress-fill');
+  if (progressFill) {
+    const targetWidth = progressFill.style.width;
+    progressFill.style.width = '0%';
+    
+    setTimeout(() => {
+      progressFill.style.width = targetWidth;
+    }, 500);
+  }
+  
+  // Add entrance animation to cards
+  const cards = document.querySelectorAll('.patient-card, .step-content-card');
+  cards.forEach((card, index) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(20px)';
+    
+    setTimeout(() => {
+      card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+    }, index * 200);
+  });
+});
+</script>
+{% endblock %}

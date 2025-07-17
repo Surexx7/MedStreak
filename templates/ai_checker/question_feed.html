@@ -1,0 +1,544 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Ask/Answer Questions - MedStreak{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+    body {
+        background-color: #f0f2f5;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .feed-container {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 20px 0;
+    }
+    
+    .post-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        border: 1px solid #e4e6ea;
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
+    }
+    
+    .post-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .ask-question-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        border: 1px solid #e4e6ea;
+        padding: 16px;
+    }
+    
+    .ask-question-input {
+        background: #f0f2f5;
+        border: none;
+        border-radius: 50px;
+        padding: 12px 16px;
+        width: 100%;
+        color: #65676b;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .ask-question-input:hover {
+        background: #e4e6ea;
+    }
+    
+    .ask-question-input:focus {
+        outline: none;
+        background: white;
+        border: 1px solid #1877f2;
+        box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.2);
+    }
+    
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1877f2 0%, #42a5f5 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 16px;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .user-avatar.small {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+    
+    .post-header {
+        padding: 16px;
+        border-bottom: 1px solid #e4e6ea;
+    }
+    
+    .post-content {
+        padding: 16px;
+    }
+    
+    .post-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1c1e21;
+        margin-bottom: 8px;
+        line-height: 1.3;
+    }
+    
+    .post-text {
+        color: #1c1e21;
+        font-size: 15px;
+        line-height: 1.4;
+        margin-bottom: 12px;
+    }
+    
+    .post-image {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin-top: 12px;
+    }
+    
+    .post-actions {
+        padding: 8px 16px;
+        background: #f7f8fa;
+        border-top: 1px solid #e4e6ea;
+    }
+    
+    .post-stats {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        border-top: 1px solid #e4e6ea;
+        font-size: 14px;
+        color: #65676b;
+    }
+    
+    .reactions-count {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .reaction-icons {
+        display: flex;
+        margin-right: 6px;
+    }
+    
+    .reaction-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        color: white;
+        margin-right: -2px;
+        border: 1px solid white;
+    }
+    
+    .reaction-icon.like {
+        background: #1877f2;
+    }
+    
+    .reaction-icon.helpful {
+        background: #f7b928;
+    }
+    
+    .reaction-icon.love {
+        background: #e41e3f;
+    }
+    
+    .action-buttons {
+        display: flex;
+        justify-content: space-around;
+        padding: 8px 0;
+    }
+    
+    .action-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border: none;
+        background: transparent;
+        color: #65676b;
+        font-size: 15px;
+        font-weight: 600;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .action-btn:hover {
+        background: #f0f2f5;
+    }
+    
+    .action-btn.active {
+        color: #1877f2;
+    }
+    
+    .action-btn.active.like {
+        color: #1877f2;
+    }
+    
+    .action-btn.active.helpful {
+        color: #f7b928;
+    }
+    
+    .action-btn.active.love {
+        color: #e41e3f;
+    }
+    
+    .username {
+        font-weight: 600;
+        color: #1c1e21;
+        text-decoration: none;
+    }
+    
+    .username:hover {
+        text-decoration: underline;
+    }
+    
+    .post-time {
+        font-size: 13px;
+        color: #65676b;
+        margin-top: 2px;
+    }
+    
+    .no-questions {
+        text-align: center;
+        padding: 60px 20px;
+        color: #65676b;
+    }
+    
+    .no-questions i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        color: #bcc0c4;
+    }
+    
+    .load-more-btn {
+        background: white;
+        border: 1px solid #e4e6ea;
+        color: #1877f2;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        display: block;
+        margin: 20px auto;
+    }
+    
+    .load-more-btn:hover {
+        background: #f0f2f5;
+        border-color: #1877f2;
+    }
+    
+    .loading-spinner {
+        text-align: center;
+        padding: 20px;
+        display: none;
+    }
+    
+    .spinner-border {
+        color: #1877f2;
+    }
+    
+    .divider {
+        height: 1px;
+        background: #e4e6ea;
+        margin: 0 16px;
+    }
+    
+    @media (max-width: 768px) {
+        .feed-container {
+            max-width: 100%;
+            padding: 10px;
+        }
+        
+        .post-card {
+            margin-bottom: 12px;
+        }
+        
+        .action-btn {
+            font-size: 14px;
+            padding: 6px 8px;
+        }
+        
+        .post-title {
+            font-size: 16px;
+        }
+        
+        .post-text {
+            font-size: 14px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="feed-container">
+        <!-- Ask Question Card -->
+        <div class="ask-question-card">
+            <div class="d-flex align-items-center gap-3">
+                <div class="user-avatar">
+                    {{ request.user.username|first|upper }}
+                </div>
+                <div class="flex-grow-1">
+                    <input type="text" 
+                           class="ask-question-input" 
+                           placeholder="What's your question, {{ request.user.first_name|default:request.user.username }}?"
+                           onclick="window.location.href='{% url 'ai_checker:ask_question' %}'"
+                           readonly>
+                </div>
+            </div>
+        </div>
+
+        <!-- Questions Feed -->
+        <div id="questions-container">
+            {% for question in page_obj %}
+            <div class="post-card" data-question-id="{{ question.id }}">
+                <!-- Post Header -->
+                <div class="post-header">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="user-avatar">
+                            {{ question.author.username|first|upper }}
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="username">{{ question.author.get_full_name|default:question.author.username }}</div>
+                            <div class="post-time">{{ question.created_at|timesince }} ago</div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-h text-muted"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'ai_checker:question_detail' question.id %}">View Details</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Post Content -->
+                <div class="post-content">
+                    <div class="post-title">{{ question.title }}</div>
+                    <div class="post-text">{{ question.content|linebreaks }}</div>
+                    
+                    {% if question.image %}
+                    <img src="{{ question.image.url }}" alt="Question image" class="post-image">
+                    {% endif %}
+                </div>
+
+                <!-- Post Stats -->
+                {% if question.get_reactions_count > 0 or question.get_answers_count > 0 %}
+                <div class="post-stats">
+                    <div class="reactions-count">
+                        {% if question.get_reactions_count > 0 %}
+                        <div class="reaction-icons">
+                            <div class="reaction-icon like"><i class="fas fa-thumbs-up"></i></div>
+                            <div class="reaction-icon helpful"><i class="fas fa-lightbulb"></i></div>
+                        </div>
+                        <span id="reactions-count-{{ question.id }}">{{ question.get_reactions_count }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="comments-count">
+                        {% if question.get_answers_count > 0 %}
+                        {{ question.get_answers_count }} answer{{ question.get_answers_count|pluralize }}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Post Actions -->
+                <div class="post-actions">
+                    <div class="action-buttons">
+                        <button class="action-btn like {% if question.user_reaction == 'like' %}active{% endif %}" 
+                                onclick="reactToQuestion({{ question.id }}, 'like')">
+                            <i class="fas fa-thumbs-up"></i> Like
+                        </button>
+                        <button class="action-btn helpful {% if question.user_reaction == 'helpful' %}active{% endif %}" 
+                                onclick="reactToQuestion({{ question.id }}, 'helpful')">
+                            <i class="fas fa-lightbulb"></i> Helpful
+                        </button>
+                        <button class="action-btn" onclick="window.location.href='{% url 'ai_checker:question_detail' question.id %}'">
+                            <i class="fas fa-comment"></i> Answer
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="no-questions">
+                <i class="fas fa-question-circle"></i>
+                <h4>No questions yet</h4>
+                <p>Be the first to ask a question and help build our learning community!</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loading-spinner">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <!-- Load More Button -->
+        {% if page_obj.has_next %}
+        <button class="load-more-btn" id="load-more-btn" data-next-page="{{ page_obj.next_page_number }}">
+            <i class="fas fa-chevron-down me-2"></i>Load More Questions
+        </button>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// React to question
+function reactToQuestion(questionId, reactionType) {
+    fetch(`/ai-checker/react/question/${questionId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({reaction_type: reactionType})
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Update reaction count
+        const reactionsCountEl = document.getElementById(`reactions-count-${questionId}`);
+        if (reactionsCountEl) {
+            reactionsCountEl.textContent = data.reactions_count;
+        }
+        
+        // Update button states
+        const questionCard = document.querySelector(`[data-question-id="${questionId}"]`);
+        const reactionBtns = questionCard.querySelectorAll('.action-btn');
+        reactionBtns.forEach(btn => btn.classList.remove('active'));
+        
+        if (data.status !== 'removed') {
+            const activeBtn = questionCard.querySelector(`.action-btn.${reactionType}`);
+            if (activeBtn) activeBtn.classList.add('active');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+// Load more questions
+document.getElementById('load-more-btn')?.addEventListener('click', function() {
+    const nextPage = this.dataset.nextPage;
+    const loadingSpinner = document.getElementById('loading-spinner');
+    
+    this.style.display = 'none';
+    loadingSpinner.style.display = 'block';
+    
+    fetch(`/ai-checker/load-more/?page=${nextPage}`)
+    .then(response => response.json())
+    .then(data => {
+        const container = document.getElementById('questions-container');
+        
+        data.questions.forEach(question => {
+            const questionHtml = `
+                <div class="post-card" data-question-id="${question.id}">
+                    <div class="post-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="user-avatar">${question.author.charAt(0).toUpperCase()}</div>
+                            <div class="flex-grow-1">
+                                <div class="username">${question.author}</div>
+                                <div class="post-time">${question.created_at}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="post-content">
+                        <div class="post-title">${question.title}</div>
+                        <div class="post-text">${question.content.replace(/\n/g, '<br>')}</div>
+                        ${question.image_url ? `<img src="${question.image_url}" alt="Question image" class="post-image">` : ''}
+                    </div>
+                    ${question.reactions_count > 0 || question.answers_count > 0 ? `
+                    <div class="post-stats">
+                        <div class="reactions-count">
+                            ${question.reactions_count > 0 ? `
+                            <div class="reaction-icons">
+                                <div class="reaction-icon like"><i class="fas fa-thumbs-up"></i></div>
+                                <div class="reaction-icon helpful"><i class="fas fa-lightbulb"></i></div>
+                            </div>
+                            <span id="reactions-count-${question.id}">${question.reactions_count}</span>
+                            ` : ''}
+                        </div>
+                        <div class="comments-count">
+                            ${question.answers_count > 0 ? `${question.answers_count} answer${question.answers_count !== 1 ? 's' : ''}` : ''}
+                        </div>
+                    </div>
+                    ` : ''}
+                    <div class="post-actions">
+                        <div class="action-buttons">
+                            <button class="action-btn like" onclick="reactToQuestion(${question.id}, 'like')">
+                                <i class="fas fa-thumbs-up"></i> Like
+                            </button>
+                            <button class="action-btn helpful" onclick="reactToQuestion(${question.id}, 'helpful')">
+                                <i class="fas fa-lightbulb"></i> Helpful
+                            </button>
+                            <button class="action-btn" onclick="window.location.href='/ai-checker/question/${question.id}/'">
+                                <i class="fas fa-comment"></i> Answer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', questionHtml);
+        });
+        
+        loadingSpinner.style.display = 'none';
+        
+        if (data.has_next) {
+            this.dataset.nextPage = data.next_page_number;
+            this.style.display = 'block';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        loadingSpinner.style.display = 'none';
+        this.style.display = 'block';
+    });
+});
+</script>
+{% endblock %}

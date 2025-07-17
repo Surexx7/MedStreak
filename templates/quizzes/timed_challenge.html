@@ -1,0 +1,430 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Timed Quiz Challenge - MediScope{% endblock %}
+
+{% block extra_css %}
+<style>
+    .quiz-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .timer-card {
+        background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+        color: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .question-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        border: 3px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+    
+    .question-card.active {
+        border-color: #007bff;
+        transform: translateY(-5px);
+    }
+    
+    .option-btn {
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        width: 100%;
+        text-align: left;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .option-btn:hover {
+        background: #e9ecef;
+        border-color: #007bff;
+    }
+    
+    .option-btn.selected {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+    
+    .option-btn.correct {
+        background: #28a745;
+        color: white;
+        border-color: #28a745;
+    }
+    
+    .option-btn.incorrect {
+        background: #dc3545;
+        color: white;
+        border-color: #dc3545;
+    }
+    
+    .progress-bar-custom {
+        height: 10px;
+        border-radius: 5px;
+        background: #e9ecef;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #007bff, #0056b3);
+        transition: width 0.3s ease;
+    }
+    
+    .timer-display {
+        font-size: 2rem;
+        font-weight: bold;
+        font-family: 'Courier New', monospace;
+    }
+    
+    .results-card {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        border-radius: 15px;
+        padding: 2rem;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .explanation-card {
+        background: #f8f9fa;
+        border-left: 4px solid #007bff;
+        padding: 1rem;
+        margin-top: 1rem;
+        border-radius: 0 10px 10px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="quiz-container">
+        <!-- Timer Card -->
+        <div class="timer-card" id="timerCard">
+            <h3>⏱️ Timed Quiz Challenge</h3>
+            <div class="timer-display" id="timerDisplay">05:00</div>
+            <p class="mb-0">Answer as many questions as you can!</p>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar-custom">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        <div class="text-center mb-3">
+            <span id="questionCounter">Question 1 of 10</span>
+        </div>
+
+        <!-- Quiz Questions -->
+        <div id="quizContainer">
+            <!-- Questions will be loaded here by JavaScript -->
+        </div>
+
+        <!-- Results Card (Hidden initially) -->
+        <div class="results-card" id="resultsCard" style="display: none;">
+            <h2>🎉 Quiz Complete!</h2>
+            <div class="row mt-4">
+                <div class="col-md-3">
+                    <h3 id="finalScore">0/10</h3>
+                    <p>Score</p>
+                </div>
+                <div class="col-md-3">
+                    <h3 id="finalAccuracy">0%</h3>
+                    <p>Accuracy</p>
+                </div>
+                <div class="col-md-3">
+                    <h3 id="finalTime">0s</h3>
+                    <p>Time</p>
+                </div>
+                <div class="col-md-3">
+                    <h3 id="xpEarned">0 XP</h3>
+                    <p>XP Earned</p>
+                </div>
+            </div>
+            <div class="mt-4">
+                <a href="{% url 'quizzes:quiz_list' %}"  class="btn btn-light btn-lg me-3">
+                    <i class="fas fa-home me-2"></i>Back to Quizzes
+                </a>
+                <button class="btn btn-outline-light btn-lg" id="restartButton">
+                    <i class="fas fa-redo me-2"></i>Try Again
+                </button>
+            </div>
+        </div>
+
+        <!-- Start Button -->
+        <div class="text-center" id="startSection">
+            <button class="btn btn-primary btn-lg" id="startButton">
+                <i class="fas fa-play me-2"></i>Start Quiz
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get CSRF token function
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Quiz data from Django
+    const questions = JSON.parse('{{ questions|escapejs }}');
+    console.log('Questions loaded:', questions);
+    
+    // Quiz state
+    let currentQuestion = 0;
+    let score = 0;
+    let timeLeft = 300; // 5 minutes in seconds
+    let timerInterval = null;
+    let startTime;
+    let userAnswers = [];
+    let quizStarted = false;
+
+    // DOM Elements
+    const startButton = document.getElementById('startButton');
+    const restartButton = document.getElementById('restartButton');
+    const timerCard = document.getElementById('timerCard');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const progressFill = document.getElementById('progressFill');
+    const questionCounter = document.getElementById('questionCounter');
+    const quizContainer = document.getElementById('quizContainer');
+    const resultsCard = document.getElementById('resultsCard');
+    const finalScore = document.getElementById('finalScore');
+    const finalAccuracy = document.getElementById('finalAccuracy');
+    const finalTime = document.getElementById('finalTime');
+    const xpEarned = document.getElementById('xpEarned');
+    const startSection = document.getElementById('startSection');
+
+    // Event listeners
+    if (startButton) {
+        startButton.addEventListener('click', startQuiz);
+    }
+    
+    if (restartButton) {
+        restartButton.addEventListener('click', restartQuiz);
+    }
+
+    // Quiz functions
+    function startQuiz() {
+        console.log('Quiz starting...');
+        startSection.style.display = 'none';
+        quizStarted = true;
+        startTime = Date.now();
+        startTimer();
+        showQuestion();
+    }
+
+    function startTimer() {
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimerDisplay();
+            
+            if (timeLeft <= 0) {
+                endQuiz();
+            }
+        }, 1000);
+    }
+
+    function updateTimerDisplay() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Change color when time is running out
+        if (timeLeft <= 30) {
+            timerCard.style.background = 'linear-gradient(135deg, #dc3545, #c82333)';
+        } else if (timeLeft <= 60) {
+            timerCard.style.background = 'linear-gradient(135deg, #ffc107, #e0a800)';
+        }
+    }
+
+    function showQuestion() {
+        if (currentQuestion >= questions.length) {
+            endQuiz();
+            return;
+        }
+
+        const question = questions[currentQuestion];
+        const progress = (currentQuestion / questions.length) * 100;
+        
+        // Update progress
+        progressFill.style.width = `${progress}%`;
+        questionCounter.textContent = `Question ${currentQuestion + 1} of ${questions.length}`;
+
+        // Create question HTML
+        const questionHTML = `
+            <div class="question-card active">
+                <h4 class="mb-4">${question.question}</h4>
+                <div class="options">
+                    ${question.options.map((option, index) => `
+                        <button class="option-btn" data-index="${index}">
+                            <strong>${String.fromCharCode(65 + index)}.</strong> ${option}
+                        </button>
+                    `).join('')}
+                </div>
+                <div class="explanation-card" id="explanation" style="display: none;">
+                    <strong>Explanation:</strong> ${question.explanation}
+                </div>
+                <div class="text-center mt-3">
+                    <button class="btn btn-primary" id="nextBtn" style="display: none;">
+                        Next Question <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        quizContainer.innerHTML = questionHTML;
+        
+        // Add event listeners to options
+        document.querySelectorAll('.option-btn').forEach(btn => {
+            btn.addEventListener('click', () => selectAnswer(parseInt(btn.dataset.index)));
+        });
+        
+        // Add event listener to next button
+        const nextBtn = document.getElementById('nextBtn');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', nextQuestion);
+        }
+    }
+
+    function selectAnswer(selectedIndex) {
+        const question = questions[currentQuestion];
+        const options = document.querySelectorAll('.option-btn');
+        
+        // Disable all options
+        options.forEach(option => option.disabled = true);
+        
+        // Show correct/incorrect styling
+        options.forEach((option, index) => {
+            if (index === question.correct) {
+                option.classList.add('correct');
+            } else if (index === selectedIndex && index !== question.correct) {
+                option.classList.add('incorrect');
+            }
+        });
+
+        // Record answer
+        userAnswers[currentQuestion] = selectedIndex;
+        
+        // Update score
+        if (selectedIndex === question.correct) {
+            score++;
+        }
+
+        // Show explanation and next button
+        document.getElementById('explanation').style.display = 'block';
+        document.getElementById('nextBtn').style.display = 'inline-block';
+    }
+
+    function nextQuestion() {
+        currentQuestion++;
+        showQuestion();
+    }
+
+    function endQuiz() {
+        clearInterval(timerInterval);
+        
+        const endTime = Date.now();
+        const timeTaken = Math.floor((endTime - startTime) / 1000);
+        const accuracy = (score / questions.length) * 100;
+
+        // Hide quiz container and show results
+        quizContainer.innerHTML = '';
+        timerCard.style.display = 'none';
+        document.querySelector('.progress-bar-custom').style.display = 'none';
+        questionCounter.style.display = 'none';
+        
+        // Update results
+        finalScore.textContent = `${score}/${questions.length}`;
+        finalAccuracy.textContent = `${accuracy.toFixed(1)}%`;
+        finalTime.textContent = `${timeTaken}s`;
+        
+        // Show results card
+        resultsCard.style.display = 'block';
+
+        // Submit results to server
+        submitResults(score, questions.length, timeTaken);
+    }
+
+    function submitResults(score, totalQuestions, timeTaken) {
+        fetch('{% url "quizzes:submit_timed_results" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                score: score,
+                total_questions: totalQuestions,
+                time_taken: timeTaken
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                xpEarned.textContent = `${data.xp_earned} XP`;
+            }
+        })
+        .catch(error => {
+            console.error('Error submitting results:', error);
+        });
+    }
+
+    function restartQuiz() {
+        // Reset quiz state
+        currentQuestion = 0;
+        score = 0;
+        timeLeft = 300;
+        userAnswers = [];
+        quizStarted = false;
+        
+        // Reset display
+        resultsCard.style.display = 'none';
+        timerCard.style.display = 'block';
+        timerCard.style.background = 'linear-gradient(135deg, #ff6b6b, #ee5a24)';
+        document.querySelector('.progress-bar-custom').style.display = 'block';
+        questionCounter.style.display = 'block';
+        startSection.style.display = 'block';
+        
+        // Reset timer display
+        timerDisplay.textContent = '05:00';
+        progressFill.style.width = '0%';
+        questionCounter.textContent = 'Question 1 of 10';
+    }
+
+    // Prevent page refresh during quiz
+    window.addEventListener('beforeunload', function(e) {
+        if (quizStarted && timeLeft > 0) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+});
+</script>
+{% endblock %}

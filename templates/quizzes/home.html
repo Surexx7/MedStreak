@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Quiz Challenge - MedStreak{% endblock %}
+
+{% block extra_css %}
+<style>
+    .quiz-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .feature-card {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .btn-quiz {
+        background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+        border: none;
+        color: white;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-quiz:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(238, 90, 36, 0.4);
+        color: white;
+    }
+    
+    .stats-card {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Header Section -->
+    <div class="quiz-card text-center">
+        <h1 class="display-4 mb-3">🧠 Quiz Challenge</h1>
+        <p class="lead">Test your medical knowledge with our interactive quizzes</p>
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <h3>{{ profile.level }}</h3>
+                    <small>Current Level</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <h3>{{ profile.quiz_accuracy|floatformat:1 }}%</h3>
+                    <small>Quiz Accuracy</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <h3>{{ profile.total_xp }}</h3>
+                    <small>Total XP</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Options -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="feature-card">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-primary rounded-circle p-3 me-3">
+                        <i class="fas fa-clock text-white fa-2x"></i>
+                    </div>
+                    <div>
+                        <h4>Timed Challenge</h4>
+                        <p class="text-muted mb-0">5-minute rapid-fire quiz</p>
+                    </div>
+                </div>
+                <p>Test your knowledge under pressure with our timed quiz challenge. Answer as many questions as you can in 5 minutes!</p>
+                <ul class="list-unstyled mb-3">
+                    <li><i class="fas fa-check text-success me-2"></i> 10 random questions</li>
+                    <li><i class="fas fa-check text-success me-2"></i> 5-minute time limit</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Bonus XP for speed</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Instant feedback</li>
+                </ul>
+                <a href="{% url 'quizzes:timed_challenge' %}" class="btn btn-quiz">
+                    <i class="fas fa-play me-2"></i>Start Challenge
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="feature-card">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-success rounded-circle p-3 me-3">
+                        <i class="fas fa-graduation-cap text-white fa-2x"></i>
+                    </div>
+                    <div>
+                        <h4>Practice Mode</h4>
+                        <p class="text-muted mb-0">Learn at your own pace</p>
+                    </div>
+                </div>
+                <p>Take your time to learn with detailed explanations for each question. Perfect for studying and understanding concepts.</p>
+                <ul class="list-unstyled mb-3">
+                    <li><i class="fas fa-check text-success me-2"></i> No time pressure</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Detailed explanations</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Multiple categories</li>
+                    <li><i class="fas fa-check text-success me-2"></i> Progress tracking</li>
+                </ul>
+                <button class="btn btn-outline-success" disabled>
+                    <i class="fas fa-tools me-2"></i>Coming Soon
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Categories -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <h3 class="mb-4">📚 Quiz Categories</h3>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="feature-card text-center">
+                <i class="fas fa-heart text-danger fa-3x mb-3"></i>
+                <h5>Cardiology</h5>
+                <p class="text-muted">Heart and cardiovascular system</p>
+                <small class="badge bg-primary">15 Questions</small>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="feature-card text-center">
+                <i class="fas fa-brain text-info fa-3x mb-3"></i>
+                <h5>Neurology</h5>
+                <p class="text-muted">Brain and nervous system</p>
+                <small class="badge bg-primary">12 Questions</small>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="feature-card text-center">
+                <i class="fas fa-lungs text-success fa-3x mb-3"></i>
+                <h5>Respiratory</h5>
+                <p class="text-muted">Lungs and breathing</p>
+                <small class="badge bg-primary">10 Questions</small>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="feature-card text-center">
+                <i class="fas fa-child text-warning fa-3x mb-3"></i>
+                <h5>Pediatrics</h5>
+                <p class="text-muted">Children's health</p>
+                <small class="badge bg-primary">8 Questions</small>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="feature-card text-center">
+                <i class="fas fa-pills text-purple fa-3x mb-3"></i>
+                <h5>Pharmacology</h5>
+                <p class="text-muted">Drugs and medications</p>
+                <small class="badge bg-primary">20 Questions</small>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="feature-card text-center">
+                <i class="fas fa-microscope text-secondary fa-3x mb-3"></i>
+                <h5>Pathology</h5>
+                <p class="text-muted">Disease mechanisms</p>
+                <small class="badge bg-primary">14 Questions</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tips Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h5><i class="fas fa-lightbulb me-2"></i>Quiz Tips</h5>
+                <ul class="mb-0">
+                    <li>Read each question carefully before selecting an answer</li>
+                    <li>In timed mode, don't spend too long on difficult questions</li>
+                    <li>Review explanations to learn from mistakes</li>
+                    <li>Take regular breaks to maintain focus</li>
+                    <li>Use practice mode to study specific topics</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add any JavaScript for quiz home page
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate cards on load
+        const cards = document.querySelectorAll('.feature-card');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                card.style.transition = 'all 0.5s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %}

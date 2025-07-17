@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Complete Your Profile - MedStreak{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 py-12 px-4">
+    <div class="max-w-2xl mx-auto">
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 gradient-bg rounded-xl flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="user-check" class="w-8 h-8 text-white"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Complete Your Profile</h1>
+            <p class="text-gray-600">Help us personalize your learning experience</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg border p-8">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Personal Information -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Personal Information</h3>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="{{ user_form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                First Name
+                            </label>
+                            {{ user_form.first_name }}
+                        </div>
+                        <div>
+                            <label for="{{ user_form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                Last Name
+                            </label>
+                            {{ user_form.last_name }}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="{{ user_form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            Email Address
+                        </label>
+                        {{ user_form.email }}
+                    </div>
+                </div>
+
+                <!-- Academic Information -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Academic Information</h3>
+                    
+                    <div>
+                        <label for="{{ profile_form.student_id.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            Student ID (Optional)
+                        </label>
+                        {{ profile_form.student_id }}
+                        <p class="mt-1 text-xs text-gray-500">Your university student identification number</p>
+                    </div>
+                    
+                    <div>
+                        <label for="{{ profile_form.university.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            University/Institution
+                        </label>
+                        {{ profile_form.university }}
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="{{ profile_form.year_of_study.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                Year of Study
+                            </label>
+                            {{ profile_form.year_of_study }}
+                        </div>
+                        <div>
+                            <label for="{{ profile_form.specialization.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                Specialization Interest
+                            </label>
+                            {{ profile_form.specialization }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preferences -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Preferences</h3>
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-center">
+                            {{ profile_form.email_notifications }}
+                            <label for="{{ profile_form.email_notifications.id_for_label }}" class="ml-2 text-sm text-gray-700">
+                                Send me email notifications about new content and achievements
+                            </label>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            {{ profile_form.public_profile }}
+                            <label for="{{ profile_form.public_profile.id_for_label }}" class="ml-2 text-sm text-gray-700">
+                                Make my profile visible on leaderboards
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-6">
+                    <button type="submit" 
+                            class="w-full gradient-bg text-white py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity">
+                        <i data-lucide="check" class="w-5 h-5 inline mr-2"></i>
+                        Complete Profile & Start Learning
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Skip Option -->
+        <div class="text-center mt-6">
+            <a href="{% url 'dashboard' %}" class="text-gray-500 hover:text-gray-700 text-sm">
+                Skip for now and complete later
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

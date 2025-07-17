@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MedStreak - The Medical Adventure{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <!-- Custom CSS -->
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Notification badge styles */
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s infinite;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        /* Notification dropdown styles */
+        .notification-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background-color 0.2s;
+            cursor: pointer; /* Added for better UX */
+        }
+        
+        .notification-item:hover {
+            background-color: #f9fafb;
+        }
+        
+        .notification-item.unread {
+            background-color: #eff6ff;
+            border-left: 3px solid #3b82f6;
+        }
+        
+        .notification-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .notification-badge {
+                width: 18px;
+                height: 18px;
+                font-size: 10px;
+                top: -6px;
+                right: -6px;
+            }
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white border-b sticky top-0 z-50 shadow-sm">
+        <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+            <a href="{% url 'home' %}" class="flex items-center space-x-2">
+                <div class="w-8 h-8 gradient-bg rounded-lg flex items-center justify-center">
+                    <i data-lucide="stethoscope" class="w-5 h-5 text-white"></i>
+                </div>
+                <span class="text-xl font-bold gradient-text">MedStreak</span>
+            </a>
+            
+            <!-- Main Navigation (Desktop) -->
+            <nav class="hidden md:flex items-center space-x-6">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'dashboard' %}" class="text-gray-600 hover:text-blue-600 transition-colors {% if request.resolver_match.url_name == 'dashboard' %}text-blue-600 font-medium{% endif %}">
+                        <i data-lucide="home" class="w-4 h-4 inline mr-1"></i>
+                        Dashboard
+                    </a>
+                    <a href="{% url 'case_list' %}" class="text-gray-600 hover:text-blue-600 transition-colors">
+                        <i data-lucide="gamepad-2" class="w-4 h-4 inline mr-1"></i>
+                        Cases
+                    </a>
+                    <a href="{% url 'quizzes:quiz_list' %}" class="text-gray-600 hover:text-blue-600 transition-colors">
+                        <i data-lucide="zap" class="w-4 h-4 inline mr-1"></i>
+                        Quizzes
+                    </a>
+                    <a href="{% url 'anatomy_explorer' %}" class="text-gray-600 hover:text-blue-600 transition-colors">
+                        <i data-lucide="brain" class="w-4 h-4 inline mr-1"></i>
+                        3D Anatomy
+                    </a>
+                    <a href="{% url 'ai_checker:question_feed' %}" class="text-gray-600 hover:text-blue-600 transition-colors">
+                        <i data-lucide="activity" class="w-4 h-4 inline mr-1"></i>
+                        Ask/Answer Questions
+                    </a>
+                    <a href="{% url 'leaderboard' %}" class="text-gray-600 hover:text-blue-600 transition-colors">
+                        <i data-lucide="trophy" class="w-4 h-4 inline mr-1"></i>
+                        Leaderboard
+                    </a>
+                    
+                    <!-- Notification Bell with Dropdown -->
+                    <div class="relative" id="notification-dropdown">
+                        <button class="text-gray-600 hover:text-blue-600 transition-colors relative inline-flex items-center focus:outline-none" onclick="toggleNotificationDropdown()">
+                            <i data-lucide="bell" class="w-4 h-4"></i>
+                            {% if unread_notification_count > 0 %}
+                            <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse notification-badge" id="notification-badge">
+                                {% if unread_notification_count > 99 %}99+{% else %}{{ unread_notification_count }}{% endif %}
+                            </span>
+                            {% endif %}
+                        </button>
+                        
+                        <!-- Dropdown Menu -->
+                        <div class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 hidden" id="notification-menu">
+                            <div class="p-4 border-b border-gray-200">
+                                <div class="flex justify-between items-center">
+                                    <h3 class="font-semibold text-gray-800">Notifications</h3>
+                                    <a href="{% url 'ai_checker:notifications' %}" class="text-blue-600 text-sm hover:underline">View All</a>
+                                </div>
+                            </div>
+                            
+                            <div class="max-h-96 overflow-y-auto" id="notification-list">
+                                <div class="p-4 text-center text-gray-500">
+                                    <i data-lucide="loader" class="w-6 h-6 mx-auto mb-2 animate-spin"></i>
+                                    Loading notifications...
+                                </div>
+                            </div>
+                            
+                            <div class="p-3 border-t border-gray-200 text-center">
+                                <button onclick="markAllNotificationsRead()" class="text-blue-600 text-sm hover:underline">
+                                    Mark all as read
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </nav>
+            
+            <!-- User Info / Auth Buttons -->
+            <div class="flex items-center space-x-4">
+                {% if user.is_authenticated %}
+                    <!-- User Info -->
+                    <div class="flex items-center space-x-3">
+                        <!-- XP Display -->
+                        <div class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium">
+                            <i data-lucide="star" class="w-3 h-3 inline mr-1"></i>
+                            {{ user.studentprofile.total_xp }} XP
+                        </div>
+                        
+                        <!-- Level Display -->
+                        <div class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+                            Level {{ user.studentprofile.level }}
+                        </div>
+                        
+                        <!-- User Menu -->
+                        <div class="relative group">
+                            <button class="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors">
+                                <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                                    <i data-lucide="user" class="w-4 h-4"></i>
+                                </div>
+                                <span class="hidden sm:block">{{ user.first_name|default:user.username }}</span>
+                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                            </button>
+                            
+                            <!-- Dropdown Menu -->
+                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                                <div class="py-1">
+                                    <a href="{% url 'profile' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <i data-lucide="user" class="w-4 h-4 inline mr-2"></i>
+                                        My Profile
+                                    </a>
+                                    <a href="{% url 'dashboard' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <i data-lucide="bar-chart-3" class="w-4 h-4 inline mr-2"></i>
+                                        My Progress
+                                    </a>
+                                    <div class="border-t border-gray-100"></div>
+                                    <form method="post" action="{% url 'logout' %}" class="w-full">
+                                        {% csrf_token %}
+                                        <button type="submit" class="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                            <i data-lucide="log-out" class="w-4 h-4 inline mr-2"></i>
+                                            Sign Out
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <a href="{% url 'login' %}" class="text-gray-600 hover:text-blue-600 transition-colors">
+                        <i data-lucide="log-in" class="w-4 h-4 inline mr-1"></i>
+                        Login
+                    </a>
+                    <a href="{% url 'register' %}" class="gradient-bg text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
+                        <i data-lucide="user-plus" class="w-4 h-4 inline mr-1"></i>
+                        Get Started
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+    
+    <!-- Messages -->
+    {% if messages %}
+        <div class="container mx-auto px-4 py-2">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} {% if message.tags == 'success' %}bg-green-50 border border-green-200 text-green-800{% elif message.tags == 'error' %}bg-red-50 border border-red-200 text-red-800{% elif message.tags == 'warning' %}bg-yellow-50 border border-yellow-200 text-yellow-800{% else %}bg-blue-50 border border-blue-200 text-blue-800{% endif %} px-4 py-3 rounded mb-4 flex items-center">
+                    {% if message.tags == 'success' %}
+                        <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>
+                    {% elif message.tags == 'error' %}
+                        <i data-lucide="x-circle" class="w-5 h-5 mr-2"></i>
+                    {% elif message.tags == 'warning' %}
+                        <i data-lucide="alert-triangle" class="w-5 h-5 mr-2"></i>
+                    {% else %}
+                        <i data-lucide="info" class="w-5 h-5 mr-2"></i>
+                    {% endif %}
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    <!-- Study Session Timer (for logged in users) -->
+    {% if user.is_authenticated %}
+        <div id="study-timer" class="hidden fixed bottom-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-40">
+            <div class="flex items-center space-x-3">
+                <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <div>
+                    <div class="text-sm font-medium text-gray-900">Study Session Active</div>
+                    <div id="timer-display" class="text-xs text-gray-600">00:00:00</div>
+                </div>
+                <button onclick="endStudySession()" class="text-red-600 hover:text-red-800">
+                    <i data-lucide="square" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    {% endif %}
+    
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12 px-4 mt-16">
+        <div class="container mx-auto">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-8 h-8 gradient-bg rounded-lg flex items-center justify-center">
+                            <i data-lucide="stethoscope" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <span class="text-xl font-bold">MedStreak</span>
+                    </div>
+                    <p class="text-gray-400">Revolutionizing medical education through gamified learning experiences.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Features</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li>Case Simulations</li>
+                        <li>Diagnosis Quizzes</li>
+                        <li>3D Anatomy</li>
+                        <li>AI Symptom Checker</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Learning</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li>Medical Cases</li>
+                        <li>Emergency Scenarios</li>
+                        <li>Skill Building</li>
+                        <li>Progress Tracking</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Community</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li>Student Forums</li>
+                        <li>Leaderboards</li>
+                        <li>Study Groups</li>
+                        <li>Expert Support</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 MediScope. All rights reserved. Built for the future of medical education.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Initialize Lucide Icons -->
+    <script>
+        lucide.createIcons();
+        
+        // Study Session Timer
+        let studyStartTime = null;
+        let timerInterval = null;
+        
+        function startStudySession() {
+            fetch('{% url "start_study_session" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    studyStartTime = new Date();
+                    document.getElementById('study-timer').classList.remove('hidden');
+                    startTimer();
+                }
+            });
+        }
+        
+        function endStudySession() {
+            fetch('{% url "end_study_session" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('study-timer').classList.add('hidden');
+                    clearInterval(timerInterval);
+                    alert(`Study session completed! Duration: ${data.duration} minutes. XP earned: ${data.xp_earned}`);
+                }
+            });
+        }
+        
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (studyStartTime) {
+                    const now = new Date();
+                    const diff = now - studyStartTime;
+                    const hours = Math.floor(diff / 3600000);
+                    const minutes = Math.floor((diff % 3600000) / 60000);
+                    const seconds = Math.floor((diff % 60000) / 1000);
+                    
+                    document.getElementById('timer-display').textContent = 
+                        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+            }, 1000);
+        }
+        
+        // Notification Dropdown Functions
+        let notificationDropdownOpen = false;
+        
+        function toggleNotificationDropdown() {
+            const menu = document.getElementById('notification-menu');
+            notificationDropdownOpen = !notificationDropdownOpen;
+            
+            if (notificationDropdownOpen) {
+                menu.classList.remove('hidden');
+                loadRecentNotifications();
+            } else {
+                menu.classList.add('hidden');
+            }
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('notification-dropdown');
+            if (dropdown && !dropdown.contains(event.target) && notificationDropdownOpen) {
+                document.getElementById('notification-menu').classList.add('hidden');
+                notificationDropdownOpen = false;
+            }
+        });
+        
+        function loadRecentNotifications() {
+            const listContainer = document.getElementById('notification-list');
+            
+            // Updated fetch URL to use the correct endpoint
+            fetch('/ai-checker/notifications/json/?limit=5')
+            .then(response => response.json())
+            .then(data => {
+                if (data.notifications && data.notifications.length > 0) {
+                    listContainer.innerHTML = data.notifications.map(notification => `
+                        <div class="notification-item ${!notification.is_read ? 'unread' : ''}" onclick="handleNotificationClick(${notification.id}, '${notification.url}')">
+                            <div class="flex items-start space-x-3">
+                                <div class="notification-avatar">
+                                    ${notification.sender_name.charAt(0).toUpperCase()}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm text-gray-800">${notification.message}</p>
+                                    <p class="text-xs text-gray-500 mt-1">${notification.time_ago}</p>
+                                    ${notification.question_title ? `<p class="text-xs text-blue-600 mt-1 truncate">${notification.question_title}</p>` : ''}
+                                </div>
+                                ${!notification.is_read ? '<div class="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>' : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    listContainer.innerHTML = `
+                        <div class="p-4 text-center text-gray-500">
+                            <i data-lucide="bell-off" class="w-8 h-8 mx-auto mb-2 text-gray-400"></i>
+                            <p>No notifications yet</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading notifications:', error);
+                listContainer.innerHTML = `
+                    <div class="p-4 text-center text-red-500">
+                        <p>Error loading notifications</p>
+                    </div>
+                `;
+            });
+        }
+        
+        function handleNotificationClick(notificationId, url) {
+            // Mark as read
+            fetch(`/ai-checker/notifications/${notificationId}/read/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+            
+            // Navigate to the notification URL
+            window.location.href = url;
+        }
+        
+        function markAllNotificationsRead() {
+            fetch('/ai-checker/notifications/mark-all-read/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    updateNotificationCount();
+                    loadRecentNotifications();
+                }
+            });
+        }
+        
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        function updateNotificationCount() {
+            fetch('/ai-checker/notifications/count/')
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.getElementById('notification-badge');
+                const bellButton = document.querySelector('button[onclick="toggleNotificationDropdown()"]');
+                
+                if (data.unread_count > 0) {
+                    if (!badge) {
+                        const newBadge = document.createElement('span');
+                        newBadge.className = 'absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse notification-badge';
+                        newBadge.id = 'notification-badge';
+                        newBadge.textContent = data.unread_count > 99 ? '99+' : data.unread_count;
+                        bellButton.appendChild(newBadge);
+                    } else {
+                        badge.textContent = data.unread_count > 99 ? '99+' : data.unread_count;
+                    }
+                } else if (badge) {
+                    badge.remove();
+                }
+            })
+            .catch(error => console.error('Error updating notification count:', error));
+        }
+        
+        // Update notification count periodically
+        setInterval(updateNotificationCount, 30000);
+        
+        // Update when page becomes visible
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                updateNotificationCount();
+            }
+        });
+        
+        // Initialize notification count on load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateNotificationCount();
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
