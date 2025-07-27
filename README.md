@@ -12,17 +12,6 @@ Before you begin, make sure you have the following installed on your computer:
 
 ### Step 1: Download the Project Files
 
-#### Option A: Download ZIP (Easiest)
-1. Click the "Download Code" button in v0
-2. Extract the ZIP file to your desired location
-3. Rename the folder to `mediscope-platform`
-
-#### Option B: Clone from GitHub (If available)
-\`\`\`bash
-git clone <repository-url>
-cd mediscope-platform
-\`\`\`
-
 ### Step 2: Open in VS Code
 
 1. Open VS Code
@@ -114,21 +103,6 @@ Quit the server with CONTROL-C.
 1. Open your web browser
 2. Go to: `http://127.0.0.1:8000/` or `http://localhost:8000/`
 3. You should see the MediScope homepage!
-
-## 🔑 Login Credentials
-
-### Admin Access (Full Platform Management)
-- **Username:** `admin`
-- **Password:** `admin123`
-- **URL:** `http://localhost:8000/admin/`
-
-### Demo Student Account
-- **Username:** `demo_student`
-- **Password:** `mediscope123`
-
-### Other Student Accounts
-- **Password:** `password123`
-- **Usernames:** `sarah_miller`, `alex_kim`, `mike_rodriguez`, `emma_johnson`, `david_chen`, etc.
 
 ## 🛠️ VS Code Configuration
 
@@ -294,7 +268,7 @@ If you encounter issues:
 
 ## 🎉 Success!
 
-If you can access `http://localhost:8000` and see the MediScope homepage, congratulations! Your medical education platform is now running successfully.
+If you can access `http://localhost:8000` and see the MediStreak homepage, congratulations! Your medical education platform is now running successfully.
 
 Happy coding! 🚀
 \`\`\`
