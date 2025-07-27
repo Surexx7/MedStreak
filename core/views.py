@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, authenticate
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.db.models import Q
 from django.utils import timezone
@@ -9,6 +10,13 @@ from .models import StudentProfile, Achievement, Activity, StudySession
 from .forms import StudentRegistrationForm, StudentProfileForm, UserUpdateForm
 from cases.models import Case
 from django.contrib.auth.models import User
+import google.generativeai as genai
+from django.conf import settings 
+import json
+import asyncio
+import time
+from concurrent.futures import TimeoutError
+
 
 def home(request):
     """Landing page view"""
@@ -292,3 +300,109 @@ def end_study_session(request):
             return JsonResponse({'success': False, 'message': 'No active study session found'})
     
     return JsonResponse({'success': False, 'message': 'Invalid request'})
+
+@csrf_exempt
+def chatbot(request):
+    if request.method == 'POST':
+        start_time = time.time()
+        
+        try:
+            # Handle both form data and JSON
+            if request.content_type == 'application/json':
+                data = json.loads(request.body)
+                user_input = data.get('message', '')
+            else:
+                user_input = request.POST.get('message', '')
+            
+            if not user_input:
+                return JsonResponse({'error': 'No message provided'}, status=400)
+            
+            # Configure Gemini
+            api_key = getattr(settings, 'GEMINI_API_KEY', None)
+            if not api_key:
+                return JsonResponse({
+                    'error': 'GEMINI_API_KEY not found in settings'
+                }, status=500)
+            
+            genai.configure(api_key=api_key)
+            
+            # Use the fastest model for better response time
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            
+            # Optimize the prompt to be more concise
+            prompt = f"Medical assistant: Answer this medical education question in 2-3 sentences: {user_input}"
+            
+            # Configure generation settings for faster response
+            generation_config = {
+                "temperature": 0.3,  # Lower temperature for faster, more focused responses
+                "max_output_tokens": 500,  # Limit response length
+                "top_k": 20,
+                "top_p": 0.8,
+            }
+            
+            # Generate response with timeout handling
+            try:
+                response = model.generate_content(
+                    prompt,
+                    generation_config=generation_config,
+                    safety_settings=[
+                        {
+                            "category": "HARM_CATEGORY_HARASSMENT",
+                            "threshold": "BLOCK_ONLY_HIGH"
+                        },
+                        {
+                            "category": "HARM_CATEGORY_HATE_SPEECH",
+                            "threshold": "BLOCK_ONLY_HIGH"
+                        },
+                        {
+                            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                            "threshold": "BLOCK_ONLY_HIGH"
+                        },
+                        {
+                            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                            "threshold": "BLOCK_ONLY_HIGH"
+                        }
+                    ]
+                )
+                
+                # Check if response was blocked
+                if not response.text:
+                    return JsonResponse({
+                        'reply': 'I apologize, but I cannot provide a response to that question. Please try rephrasing your medical question.'
+                    })
+                
+                reply = response.text.strip()
+                
+                # Log response time for debugging
+                response_time = time.time() - start_time
+                print(f"Response time: {response_time:.2f} seconds")
+                
+                return JsonResponse({
+                    'reply': reply,
+                    'response_time': f"{response_time:.2f}s"
+                })
+                
+            except Exception as api_error:
+                # Handle API-specific errors
+                error_msg = str(api_error)
+                if "quota" in error_msg.lower():
+                    return JsonResponse({
+                        'reply': 'Service temporarily unavailable due to high demand. Please try again in a moment.'
+                    })
+                elif "timeout" in error_msg.lower():
+                    return JsonResponse({
+                        'reply': 'Response took too long. Please try a shorter question.'
+                    })
+                else:
+                    raise api_error
+            
+        except Exception as e:
+            response_time = time.time() - start_time
+            print(f"Error after {response_time:.2f} seconds: {str(e)}")
+            
+            return JsonResponse({
+                'error': f"Medical assistant error: {str(e)}",
+                'response_time': f"{response_time:.2f}s"
+            }, status=500)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=405)

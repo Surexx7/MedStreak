@@ -417,7 +417,7 @@
 <div class="result-container">
     <div class="result-card">
         <div class="result-header">
-            <h1 class="result-title">Quiz Completed!</h1>
+            <h1 class="result-title">Exam Completed!</h1>
             <div class="quiz-title">{{ attempt.quiz.title }}</div>
             
             <!-- Enhanced Score Display -->
@@ -511,10 +511,10 @@
             
             <div class="action-buttons">
                 <a href="{% url 'quizzes:quiz_list' %}" class="btn-action btn-primary">
-                    <i class="fas fa-list"></i> Return to Quiz List
+                    <i class="fas fa-list"></i> Return to Question List
                 </a>
-                <a href="{% url 'quizzes:quiz_detail' quiz_id=attempt.quiz.id %}" class="btn-action btn-secondary">
-                    <i class="fas fa-redo"></i> Retry This Quiz
+                <a href="{% url 'quizzes:take_quiz' quiz_id=attempt.quiz.id %}" class="btn-action btn-secondary">
+                   <i class="fas fa-redo"></i> Retry This Questions
                 </a>
             </div>
         </div>

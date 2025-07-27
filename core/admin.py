@@ -47,3 +47,7 @@ class StudySessionAdmin(admin.ModelAdmin):
     list_filter = ['start_time']
     search_fields = ['user__username']
     date_hierarchy = 'start_time'
+
+admin.site.site_header = "MediStreak Admin Panel"
+admin.site.site_title = "MediStreak Admin"
+admin.site.index_title = "Welcome to MediStreak Admin Dashboard"

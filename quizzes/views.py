@@ -40,7 +40,7 @@ def quiz_detail(request, quiz_id):
         'best_attempt': best_attempt,
         'questions_count': quiz.questions.count(),
     }
-    return render(request, 'quizzes/quiz_detail.html', context)
+    return render(request, 'quizzes/quiz_details.html', context)
 
 
 @login_required

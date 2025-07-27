@@ -18,6 +18,7 @@ ALLOWED_HOSTS = []
 
 # Application definition
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -114,3 +115,23 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = 'home' 
+
+# GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyD1qxn7TSGSJB_LX49xqT-ZBvEIrlkw_eE')
+
+
+ALLOWED_HOSTS = ['*']
+
+JAZZMIN_SETTINGS = {
+    "site_title": "MediStreak Admin",
+    "site_header": "MediStreak Dashboard",
+    "site_brand": "MediStreak",
+    "welcome_sign": "Welcome to MediStreak Admin",
+    "copyright": "MediStreak",
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "yourappname.ModelName": "fas fa-heartbeat",  # customize icons per model
+    },
+}

@@ -1,179 +1,631 @@
 {% extends 'base.html' %}
 {% load static %}
-
 {% block title %}Timed Quiz Challenge - MediScope{% endblock %}
-
 {% block extra_css %}
 <style>
-    .quiz-container {
-        max-width: 800px;
-        margin: 0 auto;
+    body {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        min-height: 100vh;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
-    
-    .timer-card {
-        background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-        color: white;
-        border-radius: 15px;
-        padding: 1.5rem;
-        text-align: center;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+
+    /* New main layout container */
+    .main-quiz-layout {
+        display: flex;
+        justify-content: center; /* Centers the flex items (content and sidebar) */
+        gap: 2rem; /* Space between content and timer */
+        padding: 1.5rem; /* Overall padding for the layout */
+        min-height: 100vh;
+        align-items: flex-start; /* Align items to the top */
     }
-    
-    .question-card {
+
+    .quiz-content-area {
+        flex-grow: 1;
+        max-width: 700px; /* Max width for the main quiz content */
+    }
+
+    .timer-sidebar {
+        position: sticky;
+        top: 20px; /* Distance from the top of the viewport */
+        align-self: flex-start; /* Align to the top within the flex container */
+        width: 200px; /* Fixed width for the sidebar */
+        flex-shrink: 0; /* Prevent it from shrinking */
+    }
+
+    /* Existing quiz-header styles - ensure it fits within the sidebar */
+    .quiz-header {
         background: white;
-        border-radius: 15px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        border: 3px solid #e9ecef;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+        width: 100%; /* Ensure it takes full width of its parent (timer-sidebar) */
+    }
+
+    .timer-circle {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin: 0 auto 1rem;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+        transition: all 0.3s ease;
+        position: relative;
+        border: 3px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .timer-circle::before {
+        content: '';
+        position: absolute;
+        top: -3px;
+        left: -3px;
+        right: -3px;
+        bottom: -3px;
+        border-radius: 50%;
+        background: conic-gradient(from 0deg, transparent 0%, #10b981 var(--progress, 0%), transparent var(--progress, 0%));
+        z-index: -1;
         transition: all 0.3s ease;
     }
-    
-    .question-card.active {
-        border-color: #007bff;
-        transform: translateY(-5px);
+
+    .timer-circle.warning::before {
+        background: conic-gradient(from 0deg, transparent 0%, #f59e0b var(--progress, 0%), transparent var(--progress, 0%));
     }
-    
-    .option-btn {
-        background: #f8f9fa;
-        border: 2px solid #e9ecef;
-        border-radius: 10px;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        width: 100%;
-        text-align: left;
-        transition: all 0.3s ease;
-        cursor: pointer;
+
+    .timer-circle.danger::before {
+        background: conic-gradient(from 0deg, transparent 0%, #ef4444 var(--progress, 0%), transparent var(--progress, 0%));
     }
-    
-    .option-btn:hover {
-        background: #e9ecef;
-        border-color: #007bff;
+
+    @keyframes subtle-pulse {
+        0%, 100% { transform: scale(1); box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25); }
+        50% { transform: scale(1.02); box-shadow: 0 6px 16px rgba(245, 158, 11, 0.35); }
     }
-    
-    .option-btn.selected {
-        background: #007bff;
-        color: white;
-        border-color: #007bff;
+
+    @keyframes urgent-pulse {
+        0%, 100% { transform: scale(1); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25); }
+        50% { transform: scale(1.03); box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4); }
     }
-    
-    .option-btn.correct {
-        background: #28a745;
-        color: white;
-        border-color: #28a745;
+
+    .progress-container {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
     }
-    
-    .option-btn.incorrect {
-        background: #dc3545;
-        color: white;
-        border-color: #dc3545;
-    }
-    
-    .progress-bar-custom {
-        height: 10px;
-        border-radius: 5px;
-        background: #e9ecef;
+
+    .progress-bar-duo {
+        height: 8px;
+        background: #f1f5f9;
+        border-radius: 8px;
         overflow: hidden;
-        margin-bottom: 1rem;
+        position: relative;
     }
-    
-    .progress-fill {
+
+    .progress-fill-duo {
         height: 100%;
-        background: linear-gradient(90deg, #007bff, #0056b3);
-        transition: width 0.3s ease;
+        background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+        border-radius: 8px;
+        transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
     }
-    
-    .timer-display {
-        font-size: 2rem;
-        font-weight: bold;
-        font-family: 'Courier New', monospace;
+
+    .progress-fill-duo::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 16px;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4));
+        animation: progress-shine 3s infinite;
     }
-    
-    .results-card {
-        background: linear-gradient(135deg, #28a745, #20c997);
-        color: white;
-        border-radius: 15px;
+
+    @keyframes progress-shine {
+        0% { transform: translateX(-16px); opacity: 0; }
+        50% { opacity: 1; }
+        100% { transform: translateX(16px); opacity: 0; }
+    }
+
+    .question-counter {
+        text-align: center;
+        font-weight: 500;
+        color: #64748b;
+        margin-top: 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    .question-card-duo {
+        background: white;
+        border-radius: 16px;
         padding: 2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+        transform: translateY(10px);
+        opacity: 0;
+        animation: slide-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    @keyframes slide-in {
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .question-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 1.5rem;
+        line-height: 1.5;
+    }
+
+    .option-duo {
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 500;
+        color: #334155;
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .option-duo:hover {
+        border-color: #3b82f6;
+        background: #f0f9ff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+    }
+
+    .option-duo.selected {
+        border-color: #3b82f6;
+        background: #eff6ff;
+    }
+
+    .option-duo.correct {
+        border-color: #10b981;
+        background: #ecfdf5;
+        animation: correct-highlight 0.4s ease-out;
+    }
+
+    .option-duo.incorrect {
+        border-color: #ef4444;
+        background: #fef2f2;
+        animation: incorrect-highlight 0.4s ease-out;
+    }
+
+    @keyframes correct-highlight {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.01); }
+        100% { transform: scale(1); }
+    }
+
+    @keyframes incorrect-highlight {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-2px); }
+        75% { transform: translateX(2px); }
+    }
+
+    .option-letter {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background: #cbd5e1;
+        color: white;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+
+    .option-duo.correct .option-letter {
+        background: #10b981;
+    }
+
+    .option-duo.incorrect .option-letter {
+        background: #ef4444;
+    }
+
+    .explanation-duo {
+        background: #f0f9ff;
+        border-left: 4px solid #3b82f6;
+        padding: 1.25rem;
+        border-radius: 0 12px 12px 0;
+        margin-top: 1.5rem;
+        color: #1e293b;
+        opacity: 0;
+        transform: translateY(5px);
+        animation: fade-in 0.3s ease-out 0.2s forwards;
+    }
+
+    @keyframes fade-in {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .btn-duo {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 0.875rem 1.75rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-duo:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    }
+
+    .btn-duo:active {
+        transform: translateY(0);
+    }
+
+    .btn-start {
+        background: linear-gradient(135deg, #10b981, #059669);
+        font-size: 1.1rem;
+        padding: 1rem 2.5rem;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    }
+
+    .btn-start:hover {
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+        background: linear-gradient(135deg, #059669, #047857);
+    }
+
+    .results-card-duo {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border-radius: 16px;
+        padding: 2.5rem 2rem;
         text-align: center;
         margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15);
+        transform: scale(0.95);
+        opacity: 0;
+        animation: results-appear 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
-    
-    .explanation-card {
-        background: #f8f9fa;
-        border-left: 4px solid #007bff;
+
+    @keyframes results-appear {
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .results-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        animation: gentle-bounce 2s infinite;
+    }
+
+    @keyframes gentle-bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        opacity: 0.9;
+    }
+
+    .start-screen {
+        background: white;
+        border-radius: 16px;
+        padding: 3rem 2rem;
+        text-align: center;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e5e7eb;
+    }
+
+    .start-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .start-icon::before {
+        content: '';
+        position: absolute;
+        width: 60%;
+        height: 60%;
+        border: 3px solid white;
+        border-radius: 50%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .start-icon::after {
+        content: '';
+        position: absolute;
+        width: 2px;
+        height: 22px;
+        background: white;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        transform-origin: center bottom;
+        animation: tick-hand 2s linear infinite;
+    }
+
+    @keyframes tick-hand {
+        0% { transform: translate(-50%, -50%) rotate(0deg); }
+        100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    .start-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1rem;
+    }
+
+    .start-description {
+        color: #64748b;
+        font-size: 1rem;
+        margin-bottom: 2rem;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+        line-height: 1.6;
+    }
+
+    .quiz-info {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        text-align: center;
+    }
+
+    .info-item {
         padding: 1rem;
-        margin-top: 1rem;
-        border-radius: 0 10px 10px 0;
+    }
+
+    .info-value {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #3b82f6;
+        margin-bottom: 0.25rem;
+    }
+
+    .info-label {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1024px) { /* Adjust breakpoint as needed */
+        .main-quiz-layout {
+            flex-direction: column; /* Stack content and timer vertically */
+            align-items: center; /* Center items when stacked */
+            gap: 1.5rem;
+            padding: 1rem; /* Adjust padding for smaller screens */
+        }
+        .timer-sidebar {
+            position: static; /* Remove sticky positioning */
+            width: 100%; /* Take full width */
+            max-width: 300px; /* Limit width for better appearance on small screens */
+            order: -1; /* Place timer at the top on small screens */
+            margin-bottom: 1.5rem; /* Add some space below the timer when it's at the top */
+        }
+        .quiz-content-area {
+            width: 100%;
+            max-width: 700px; /* Maintain max-width */
+        }
+        /* Original .quiz-wrapper styles are no longer needed as the div is removed */
+        /* .quiz-wrapper { padding: 1rem; } */
+
+        .question-card-duo {
+            padding: 1.5rem;
+        }
+
+        .question-title {
+            font-size: 1.25rem;
+        }
+
+        .start-screen {
+            padding: 2rem 1.5rem;
+        }
+
+        .start-icon {
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+        }
+
+        .start-title {
+            font-size: 1.5rem;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    /* Accessibility improvements */
+    .option-duo:focus {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
+    }
+
+    .btn-duo:focus {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
+    }
+
+    /* Loading state */
+    .loading {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    /* Footer adjustments */
+    footer {
+        margin-top: 3rem !important;
+        padding: 2rem 0 !important;
+    }
+
+    footer .container {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    footer .row {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
     }
 </style>
 {% endblock %}
-
 {% block content %}
-<div class="container mt-4">
-    <div class="quiz-container">
-        <!-- Timer Card -->
-        <div class="timer-card" id="timerCard">
-            <h3>⏱️ Timed Quiz Challenge</h3>
-            <div class="timer-display" id="timerDisplay">05:00</div>
-            <p class="mb-0">Answer as many questions as you can!</p>
-        </div>
-
+<div class="main-quiz-layout">
+    <div class="quiz-content-area">
         <!-- Progress Bar -->
-        <div class="progress-bar-custom">
-            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        <div class="progress-container" id="progressContainer" style="display: none;">
+            <div class="progress-bar-duo">
+                <div class="progress-fill-duo" id="progressFill" style="width: 0%"></div>
+            </div>
+            <div class="question-counter" id="questionCounter">Question 1 of 10</div>
         </div>
-        <div class="text-center mb-3">
-            <span id="questionCounter">Question 1 of 10</span>
-        </div>
-
-        <!-- Quiz Questions -->
-        <div id="quizContainer">
-            <!-- Questions will be loaded here by JavaScript -->
-        </div>
-
-        <!-- Results Card (Hidden initially) -->
-        <div class="results-card" id="resultsCard" style="display: none;">
-            <h2>🎉 Quiz Complete!</h2>
-            <div class="row mt-4">
-                <div class="col-md-3">
-                    <h3 id="finalScore">0/10</h3>
-                    <p>Score</p>
+        <!-- Quiz Questions Container -->
+        <div id="quizContainer"></div>
+        <!-- Results Card -->
+        <div class="results-card-duo" id="resultsCard" style="display: none;">
+            <div class="results-icon">🎯</div>
+            <h2 class="mb-3">Challenge Complete!</h2>
+            <p class="mb-4">Great work on completing the timed challenge</p>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="finalScore">0/10</div>
+                    <div class="stat-label">Score</div>
                 </div>
-                <div class="col-md-3">
-                    <h3 id="finalAccuracy">0%</h3>
-                    <p>Accuracy</p>
+                <div class="stat-item">
+                    <div class="stat-value" id="finalAccuracy">0%</div>
+                    <div class="stat-label">Accuracy</div>
                 </div>
-                <div class="col-md-3">
-                    <h3 id="finalTime">0s</h3>
-                    <p>Time</p>
+                <div class="stat-item">
+                    <div class="stat-value" id="finalTime">0s</div>
+                    <div class="stat-label">Time</div>
                 </div>
-                <div class="col-md-3">
-                    <h3 id="xpEarned">0 XP</h3>
-                    <p>XP Earned</p>
+                <div class="stat-item">
+                    <div class="stat-value" id="xpEarned">0 XP</div>
+                    <div class="stat-label">XP Earned</div>
                 </div>
             </div>
-            <div class="mt-4">
-                <a href="{% url 'quizzes:quiz_list' %}"  class="btn btn-light btn-lg me-3">
-                    <i class="fas fa-home me-2"></i>Back to Quizzes
+            <div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
+                <a href="{% url 'quizzes:quiz_list' %}" class="btn-duo">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Questions
                 </a>
-                <button class="btn btn-outline-light btn-lg" id="restartButton">
-                    <i class="fas fa-redo me-2"></i>Try Again
+                <button class="btn-duo" id="restartButton">
+                    <i class="fas fa-redo"></i>
+                    Try Again
                 </button>
             </div>
         </div>
-
-        <!-- Start Button -->
-        <div class="text-center" id="startSection">
-            <button class="btn btn-primary btn-lg" id="startButton">
-                <i class="fas fa-play me-2"></i>Start Quiz
+        <!-- Start Screen -->
+        <div class="start-screen" id="startScreen">
+            <div class="start-icon"></div>
+            <h1 class="start-title">Timed Exam</h1>
+            <p class="start-description">
+                Test your medical knowledge under time pressure. Answer as many questions correctly as you can within the time limit.
+            </p>
+            <div class="quiz-info">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-value">5:00</div>
+                        <div class="info-label">Time Limit</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">10</div>
+                        <div class="info-label">Questions</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">Mixed</div>
+                        <div class="info-label">Topics</div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-duo btn-start" id="startButton">
+                <i class="fas fa-play"></i>
+                Start Exam
             </button>
+        </div>
+    </div>
+
+    <div class="timer-sidebar" id="timerSidebar">
+        <!-- Quiz Header with Timer (moved to sidebar) -->
+        <div class="quiz-header" id="quizHeader" style="display: none;">
+            <div class="timer-circle" id="timerCircle">
+                <span id="timerDisplay">05:00</span>
+            </div>
+            <div class="text-center">
+                <h6 class="mb-0 text-slate-600 font-medium">Timed Challenge Active</h6>
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
-
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -192,11 +644,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return cookieValue;
     }
-
     // Quiz data from Django
     const questions = JSON.parse('{{ questions|escapejs }}');
-    console.log('Questions loaded:', questions);
-    
+
     // Quiz state
     let currentQuestion = 0;
     let score = 0;
@@ -209,7 +659,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
     const startButton = document.getElementById('startButton');
     const restartButton = document.getElementById('restartButton');
-    const timerCard = document.getElementById('timerCard');
+    const startScreen = document.getElementById('startScreen');
+    const quizHeader = document.getElementById('quizHeader');
+    const progressContainer = document.getElementById('progressContainer');
+    const timerCircle = document.getElementById('timerCircle');
     const timerDisplay = document.getElementById('timerDisplay');
     const progressFill = document.getElementById('progressFill');
     const questionCounter = document.getElementById('questionCounter');
@@ -219,21 +672,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const finalAccuracy = document.getElementById('finalAccuracy');
     const finalTime = document.getElementById('finalTime');
     const xpEarned = document.getElementById('xpEarned');
-    const startSection = document.getElementById('startSection');
 
     // Event listeners
-    if (startButton) {
-        startButton.addEventListener('click', startQuiz);
-    }
-    
-    if (restartButton) {
-        restartButton.addEventListener('click', restartQuiz);
-    }
+    startButton?.addEventListener('click', startQuiz);
+    restartButton?.addEventListener('click', restartQuiz);
 
-    // Quiz functions
     function startQuiz() {
-        console.log('Quiz starting...');
-        startSection.style.display = 'none';
+        startScreen.style.display = 'none';
+        quizHeader.style.display = 'block';
+        progressContainer.style.display = 'block';
         quizStarted = true;
         startTime = Date.now();
         startTimer();
@@ -244,7 +691,7 @@ document.addEventListener('DOMContentLoaded', function() {
         timerInterval = setInterval(() => {
             timeLeft--;
             updateTimerDisplay();
-            
+
             if (timeLeft <= 0) {
                 endQuiz();
             }
@@ -255,12 +702,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const minutes = Math.floor(timeLeft / 60);
         const seconds = timeLeft % 60;
         timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        
-        // Change color when time is running out
+
+        // Update circular progress
+        const totalTime = 300; // 5 minutes
+        const progress = ((totalTime - timeLeft) / totalTime) * 100;
+        timerCircle.style.setProperty('--progress', `${progress}%`);
+
+        // Change timer appearance based on time left
+        timerCircle.className = 'timer-circle';
         if (timeLeft <= 30) {
-            timerCard.style.background = 'linear-gradient(135deg, #dc3545, #c82333)';
+            timerCircle.classList.add('danger');
         } else if (timeLeft <= 60) {
-            timerCard.style.background = 'linear-gradient(135deg, #ffc107, #e0a800)';
+            timerCircle.classList.add('warning');
         }
     }
 
@@ -269,77 +722,85 @@ document.addEventListener('DOMContentLoaded', function() {
             endQuiz();
             return;
         }
-
         const question = questions[currentQuestion];
         const progress = (currentQuestion / questions.length) * 100;
-        
+
         // Update progress
         progressFill.style.width = `${progress}%`;
         questionCounter.textContent = `Question ${currentQuestion + 1} of ${questions.length}`;
 
         // Create question HTML
         const questionHTML = `
-            <div class="question-card active">
-                <h4 class="mb-4">${question.question}</h4>
-                <div class="options">
+            <div class="question-card-duo">
+                <h3 class="question-title">${question.question}</h3>
+                <div class="options-container">
                     ${question.options.map((option, index) => `
-                        <button class="option-btn" data-index="${index}">
-                            <strong>${String.fromCharCode(65 + index)}.</strong> ${option}
-                        </button>
+                        <div class="option-duo" data-index="${index}" tabindex="0" role="button">
+                            <span class="option-letter">${String.fromCharCode(65 + index)}</span>
+                            <span>${option}</span>
+                        </div>
                     `).join('')}
                 </div>
-                <div class="explanation-card" id="explanation" style="display: none;">
-                    <strong>Explanation:</strong> ${question.explanation}
+                <div class="explanation-duo" id="explanation" style="display: none;">
+                    <strong>💡 Explanation:</strong> ${question.explanation}
                 </div>
-                <div class="text-center mt-3">
-                    <button class="btn btn-primary" id="nextBtn" style="display: none;">
-                        Next Question <i class="fas fa-arrow-right ms-2"></i>
+                <div class="text-center mt-4">
+                    <button class="btn-duo" id="nextBtn" style="display: none;">
+                        <span>Next Question</span>
+                        <i class="fas fa-arrow-right"></i>
                     </button>
                 </div>
             </div>
         `;
-
         quizContainer.innerHTML = questionHTML;
-        
+
         // Add event listeners to options
-        document.querySelectorAll('.option-btn').forEach(btn => {
-            btn.addEventListener('click', () => selectAnswer(parseInt(btn.dataset.index)));
+        document.querySelectorAll('.option-duo').forEach(option => {
+            option.addEventListener('click', () => {
+                if (!option.classList.contains('correct') && !option.classList.contains('incorrect')) {
+                    selectAnswer(parseInt(option.dataset.index));
+                }
+            });
+
+            // Keyboard support
+            option.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    option.click();
+                }
+            });
         });
-        
+
         // Add event listener to next button
         const nextBtn = document.getElementById('nextBtn');
-        if (nextBtn) {
-            nextBtn.addEventListener('click', nextQuestion);
-        }
+        nextBtn?.addEventListener('click', nextQuestion);
     }
 
     function selectAnswer(selectedIndex) {
         const question = questions[currentQuestion];
-        const options = document.querySelectorAll('.option-btn');
-        
-        // Disable all options
-        options.forEach(option => option.disabled = true);
-        
+        const options = document.querySelectorAll('.option-duo');
+
         // Show correct/incorrect styling
         options.forEach((option, index) => {
+            option.style.pointerEvents = 'none'; // Disable further clicks
             if (index === question.correct) {
                 option.classList.add('correct');
             } else if (index === selectedIndex && index !== question.correct) {
                 option.classList.add('incorrect');
             }
         });
-
         // Record answer
         userAnswers[currentQuestion] = selectedIndex;
-        
+
         // Update score
         if (selectedIndex === question.correct) {
             score++;
         }
-
         // Show explanation and next button
-        document.getElementById('explanation').style.display = 'block';
-        document.getElementById('nextBtn').style.display = 'inline-block';
+        setTimeout(() => {
+            document.getElementById('explanation').style.display = 'block';
+            document.getElementById('nextBtn').style.display = 'inline-flex';
+        }, 400);
     }
 
     function nextQuestion() {
@@ -349,25 +810,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function endQuiz() {
         clearInterval(timerInterval);
-        
+
         const endTime = Date.now();
         const timeTaken = Math.floor((endTime - startTime) / 1000);
-        const accuracy = (score / questions.length) * 100;
-
-        // Hide quiz container and show results
+        const accuracy = Math.round((score / questions.length) * 100);
+        // Hide quiz elements
         quizContainer.innerHTML = '';
-        timerCard.style.display = 'none';
-        document.querySelector('.progress-bar-custom').style.display = 'none';
-        questionCounter.style.display = 'none';
-        
+        quizHeader.style.display = 'none';
+        progressContainer.style.display = 'none';
+
         // Update results
         finalScore.textContent = `${score}/${questions.length}`;
-        finalAccuracy.textContent = `${accuracy.toFixed(1)}%`;
+        finalAccuracy.textContent = `${accuracy}%`;
         finalTime.textContent = `${timeTaken}s`;
-        
+
         // Show results card
         resultsCard.style.display = 'block';
-
         // Submit results to server
         submitResults(score, questions.length, timeTaken);
     }
@@ -393,6 +851,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error submitting results:', error);
+            xpEarned.textContent = '0 XP';
         });
     }
 
@@ -403,26 +862,25 @@ document.addEventListener('DOMContentLoaded', function() {
         timeLeft = 300;
         userAnswers = [];
         quizStarted = false;
-        
+
         // Reset display
         resultsCard.style.display = 'none';
-        timerCard.style.display = 'block';
-        timerCard.style.background = 'linear-gradient(135deg, #ff6b6b, #ee5a24)';
-        document.querySelector('.progress-bar-custom').style.display = 'block';
-        questionCounter.style.display = 'block';
-        startSection.style.display = 'block';
-        
+        startScreen.style.display = 'block';
+        quizHeader.style.display = 'none';
+        progressContainer.style.display = 'none';
+
         // Reset timer display
         timerDisplay.textContent = '05:00';
         progressFill.style.width = '0%';
         questionCounter.textContent = 'Question 1 of 10';
+        timerCircle.className = 'timer-circle';
     }
 
     // Prevent page refresh during quiz
     window.addEventListener('beforeunload', function(e) {
         if (quizStarted && timeLeft > 0) {
             e.preventDefault();
-            e.returnValue = '';
+            e.returnValue = 'Are you sure you want to leave? Your progress will be lost.';
         }
     });
 });
